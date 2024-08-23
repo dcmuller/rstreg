@@ -83,7 +83,7 @@ hazards and accelerated failure time metrics.
 \details{
 Currently fits proportional hazards model of the form \eqn{h(\mathbf{t})=h_0(\mathbf{t})\exp(g(\mathbf{X}))}.
 The Weibull proportional hazards model has Survivor function \eqn{\exp(-\lambda t^p)}, and
-is parameterised by \eqn{\lambda = \exp{\mathbf{X\beta}}}. When \code{formula} contains a
+is parameterised by \eqn{\lambda = \exp(\mathbf{X\beta})}. When \code{formula} contains a
 \code{\link[survival:strata]{survival::strata()}} term, the Weibull parameter \eqn{p} is parameterised by
 \eqn{p=\exp(\mathbf{Z\gamma})}, thus fitting separate baseline hazards for each level of
 the \code{strata} term.
