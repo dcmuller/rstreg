@@ -33,7 +33,7 @@ summary.streg <- function(object, ...)
     table[, 3] <- sqrt(diag(object$naive.var))
     table[, 4] <- table[, 1]/stds
     table[, 5] <- 2*pnorm(-abs(table[,4]))
-    table[, 6] <- table[, 1] - qnorm(0.025)*stds
+    table[, 6] <- table[, 1] + qnorm(0.025)*stds
     table[, 7] <- table[, 1] + qnorm(0.975)*stds
   }
   if (object$metric=="PH"){
