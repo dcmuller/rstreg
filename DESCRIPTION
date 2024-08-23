@@ -1,0 +1,22 @@
+Package: rstreg
+Title: Parametric survival models incorporating counting process survival data
+Version: 0.0.0.9000
+Authors@R: 
+    person("David", "Muller", , "david.muller@imperial.ac.uk", role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-2350-0417"))
+Description: rstreg provides parametric survival models similar to those implemented in 
+    Stata's streg command. Other packages also provide such models, but no one package contains
+    all of the features available in the Stata command. For instance, survreg from the survival
+    package does not support delayed entry/counting process survival data. On the other hand, phreg from the 
+    eha package does allow counting process survival data, but does not allow for weighted/pseudolikelihood
+    estimation. This package will support weighted/pseudolikelihood estimation of parametric survival models
+    with (possibly) delayed entry.
+License: 	LGPL-2 | LGPL-3 
+Depends:
+    R (>= 3.0.1), survival
+Imports: 
+    survival,
+    maxLik
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
