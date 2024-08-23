@@ -22,6 +22,7 @@
 #' @param pfixed optional real value to fix the Weibull parameter p. e.g. set \code{pfixed=1} to
 #' fit an exponential survival model.
 #' @param init optional vector of initial values for the parameters.
+#' @param init.search if TRUE fit preliminary models to obtain initial values for the parameters.
 #' @param max.method optimisation method passed to [maxLik::maxLik()]
 #' @param control list of control values passed to [maxLik::maxLik()]
 #' @param model if TRUE returns the model frame
@@ -34,6 +35,8 @@
 #' the number of observations.
 #' @param cluster optional variable that identifies groups of observations that is used in the
 #' calculation of the robust variance-covariance
+#' @param metric proportional hazards \code{"PH"} or accelerated failure time \code{"AFT"} metric.
+#' Currently only \code{"PH"} is available.
 #' @param ... other arguments passed to [maxLik::maxLik()]
 #'
 #' @details
@@ -54,8 +57,8 @@
 #' @export
 #'
 streg <- function(formula, data, weights, subset, na.action, dist = "weibull", pfixed=NULL,
-                  init = NULL, max.method="NR", control=NULL, model=TRUE,
-                  x=TRUE, z=TRUE, y = TRUE, robust = FALSE, cluster,
+                  init = NULL, init.search=TRUE, max.method="NR", control=NULL, model=TRUE,
+                  x=TRUE, z=TRUE, y = TRUE, robust = FALSE, cluster, metric="PH",
                   ...)
 {
   Call <- match.call()
@@ -167,6 +170,28 @@ streg <- function(formula, data, weights, subset, na.action, dist = "weibull", p
     else logcorrect <- sum(weights[exactsurv] * log(Y[exactsurv, (ncol(Y)-1)]))
   }
   Ysave <- Y
+
+  ## fit models to obtain initial values
+  if (init.search) {
+    if (metric=="PH") {
+      coxcall <- Call[!is.na(match(names(Call), c("", "formula","data", "weights", "cluster")))]
+      coxcall <- coxcall[unlist(lapply(coxcall, function(x) !is.null(x)))]
+      coxcall[[1]] <- quote(coxph)
+      cinit <- eval(coxcall)
+      cinit <- coef(cinit)
+      init <- cinit
+      if (is.null(pfixed)) {
+        stinit <- streg.fit(Z, Z, Y, weights, offset, init=NULL, pfixed,
+                            max.method=max.method, control=control, dist=dist,
+                            ...)
+      }
+      else stinit <- streg.fit(model.matrix(zTerms, m),Z,Y,weights, offset, init=NULL, pfixed,
+                            max.method=max.method, control=control, dist=dist,
+                            ...)
+      stinit <- stinit$estimate
+      init <- c(init, stinit)[c(names(stinit[1]), names(cinit), names(stinit)[-1])]
+    }
+  }
 
   fit <- streg.fit(X, Z, Y, weights, offset, init = init, pfixed,
                      max.method=max.method, control=control, dist = dist,

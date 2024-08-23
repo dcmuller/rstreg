@@ -13,6 +13,7 @@ streg(
   dist = "weibull",
   pfixed = NULL,
   init = NULL,
+  init.search = TRUE,
   max.method = "NR",
   control = NULL,
   model = TRUE,
@@ -21,6 +22,7 @@ streg(
   y = TRUE,
   robust = FALSE,
   cluster,
+  metric = "PH",
   ...
 )
 }
@@ -45,6 +47,8 @@ fit an exponential survival model.}
 
 \item{init}{optional vector of initial values for the parameters.}
 
+\item{init.search}{if TRUE fit preliminary models to obtain initial values for the parameters.}
+
 \item{max.method}{optimisation method passed to \code{\link[maxLik:maxLik]{maxLik::maxLik()}}}
 
 \item{control}{list of control values passed to \code{\link[maxLik:maxLik]{maxLik::maxLik()}}}
@@ -64,6 +68,9 @@ the number of observations.}
 
 \item{cluster}{optional variable that identifies groups of observations that is used in the
 calculation of the robust variance-covariance}
+
+\item{metric}{proportional hazards \code{"PH"} or accelerated failure time \code{"AFT"} metric.
+Currently only \code{"PH"} is available.}
 
 \item{...}{other arguments passed to \code{\link[maxLik:maxLik]{maxLik::maxLik()}}}
 }

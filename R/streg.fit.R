@@ -1,9 +1,9 @@
 #' @export
 streg.fit <- function(x, z, y, weights, offset, init, pfixed, control, dist, max.method, ...) {
   if (!is.matrix(x))
-    stop("Invalid X matrix ")
+    stop("Invalid x matrix ")
   if (is.null(pfixed) && !is.matrix(z))
-    stop("Invalid Z matrix")
+    stop("Invalid z matrix")
   n <- nrow(x)
   nvar <- ncol(x)
   nz <- ncol(z)
