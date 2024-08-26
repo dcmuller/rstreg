@@ -1,3 +1,18 @@
+#' @title Fit a Parametric Survival Model
+#' @description Raw interface for fitting parametric survival regression models. See
+#' [rstreg::streg()] for the formula and data based interface.
+#' @param x \code{model.matrix} for the regression parameters.
+#' @param z \code{model.matrix} for the auxiliary parameters
+#' @param y \code{Survival outcome of class [survival::Surv()]}
+#' @param weights observation weights
+#' @param offset offset for the linear predictor of the regression equation
+#' @param init vector of initial values
+#' @param pfixed value to fix auxiliary parameter p at.
+#' @param control control list passed to [maxLik::maxLik()]
+#' @param dist survival distribution
+#' @param max.method maximisation method passed to [maxLik::maxLik()]
+#' @param ... for future methods
+#'
 #' @export
 streg.fit <- function(x, z, y, weights, offset, init, pfixed, control, dist, max.method, ...) {
   if (!is.matrix(x))
@@ -14,6 +29,8 @@ streg.fit <- function(x, z, y, weights, offset, init, pfixed, control, dist, max
     weights <- rep(1, n)
   else if (any(weights <= 0))
     stop("Invalid weights, must be >0")
+  if (!is.null(pfixed))
+    pfixed <- rep(pfixed, n)
   nvar2 <- nvar + ifelse(!is.null(pfixed), 0L, nz)
   if (is.numeric(init)) {
     if (length(init) == nvar && (nvar2 > nvar)) {
@@ -37,8 +54,8 @@ streg.fit <- function(x, z, y, weights, offset, init, pfixed, control, dist, max
     exit <- y[, "time"]
     enter <- rep(0, length(exit))
   }
-  fit <- maxLik(streg.fit.ll.weibull, start=init,
-                X=x, Z=z, tt=exit, tt0=enter, d=status, pfixed=pfixed, w=weights, method=max.method, control=control)
+  fit <- maxLik(weibull_ll, grad=weibull_gr, start=init,
+                X=x, Z=z, tt=exit, tt0=enter, d=status, pfixed=pfixed, w=weights, offset=offset, method=max.method, control=control)
   fit$linear.predictors <- c(x %*% fit$estimate[colnames(x)] + offset)
   return(fit)
 }

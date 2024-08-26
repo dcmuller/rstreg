@@ -11,12 +11,13 @@ Description: rstreg provides parametric survival models similar to those impleme
     eha package does allow counting process survival data, but does not allow for weighted/pseudolikelihood
     estimation. This package will support weighted/pseudolikelihood estimation of parametric survival models
     with (possibly) delayed entry.
-License: 	LGPL-2 | LGPL-3 
+License: LGPL-2 | LGPL-3 
 Depends:
     R (>= 3.0.1), survival
 Imports: 
-    survival,
-    maxLik
+    maxLik,
+    Rcpp (>= 1.0.12),
+LinkingTo: Rcpp, RcppArmadillo
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
