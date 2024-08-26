@@ -1,4 +1,4 @@
-streg.fit.ll.weibull <- function(theta,X,Z,tt0=NULL,tt,d,pfixed,w=NULL,...) {
+streg.fit.ll.weibull <- function(theta,X,Z,tt0=NULL,tt,d,pfixed,w=NULL,offset=offset,...) {
   if (is.null(tt0)) {
     tt0 <- rep(0, length(d))
   }
@@ -6,7 +6,7 @@ streg.fit.ll.weibull <- function(theta,X,Z,tt0=NULL,tt,d,pfixed,w=NULL,...) {
     w <- rep(1, length(d))
   }
   beta <- theta[colnames(X)]
-  log_lambda <- drop(X%*%beta)
+  log_lambda <- drop(X%*%beta) + offset
   lambda <- exp(log_lambda)
   gamma <- theta[colnames(Z)]
   if (!is.null(pfixed))
@@ -15,7 +15,7 @@ streg.fit.ll.weibull <- function(theta,X,Z,tt0=NULL,tt,d,pfixed,w=NULL,...) {
     log_p <- drop(Z%*%gamma)
   p <- exp(log_p)
 
-  ll <- w*(d*(log_lambda + log_p + (p-1)*log(tt)) - lambda*tt^p + ifelse(tt0>0, lambda*tt0^p, 0))
+  ll <- w*(d*(log_lambda + log_p + (p-1)*log(tt)) - lambda*exp(p*log(tt)) + ifelse(tt0>0, lambda*exp(p*log(tt0)), 0))
 
   ## matrix of observation-level gradient vectors (scores)
   gr <- matrix(NA, nrow=length(d), ncol=length(theta))
