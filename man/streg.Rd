@@ -14,7 +14,7 @@ streg(
   pfixed = NULL,
   init = NULL,
   init.search = TRUE,
-  max.method = "NR",
+  max.method = "BFGS",
   control = NULL,
   model = TRUE,
   x = TRUE,
@@ -49,9 +49,9 @@ fit an exponential survival model.}
 
 \item{init.search}{if TRUE fit preliminary models to obtain initial values for the parameters.}
 
-\item{max.method}{optimisation method passed to \code{\link[maxLik:maxLik]{maxLik::maxLik()}}}
+\item{max.method}{optimisation method passed to \link{roptim} (defaults to BFGS)}
 
-\item{control}{list of control values passed to \code{\link[maxLik:maxLik]{maxLik::maxLik()}}}
+\item{control}{list of control values passed to \link{roptim}}
 
 \item{model}{if TRUE returns the model frame}
 
@@ -67,12 +67,12 @@ robust variance-covariance matrix will be adjusted for the number of clusters ra
 the number of observations.}
 
 \item{cluster}{optional variable that identifies groups of observations that is used in the
-calculation of the robust variance-covariance}
+calculation of the robust variance-cvariance}
 
 \item{metric}{proportional hazards \code{"PH"} or accelerated failure time \code{"AFT"} metric.
 Currently only \code{"PH"} is available.}
 
-\item{...}{other arguments passed to \code{\link[maxLik:maxLik]{maxLik::maxLik()}}}
+\item{...}{other arguments passed to \link{roptim}}
 }
 \value{
 an object of class \code{streg} is returned.
