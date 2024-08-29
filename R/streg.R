@@ -23,8 +23,8 @@
 #' fit an exponential survival model.
 #' @param init optional vector of initial values for the parameters.
 #' @param init.search if TRUE fit preliminary models to obtain initial values for the parameters.
-#' @param max.method optimisation method passed to [maxLik::maxLik()]
-#' @param control list of control values passed to [maxLik::maxLik()]
+#' @param max.method optimisation method passed to [roptim] (defaults to BFGS)
+#' @param control list of control values passed to [roptim]
 #' @param model if TRUE returns the model frame
 #' @param x if TRUE returns the x matrix
 #' @param z if TRUE returns the z matrix (predictor matrix for the Weibull parameter p)
@@ -34,10 +34,10 @@
 #' robust variance-covariance matrix will be adjusted for the number of clusters rather than
 #' the number of observations.
 #' @param cluster optional variable that identifies groups of observations that is used in the
-#' calculation of the robust variance-covariance
+#' calculation of the robust variance-cvariance
 #' @param metric proportional hazards \code{"PH"} or accelerated failure time \code{"AFT"} metric.
 #' Currently only \code{"PH"} is available.
-#' @param ... other arguments passed to [maxLik::maxLik()]
+#' @param ... other arguments passed to [roptim]
 #'
 #' @details
 #' Currently fits proportional hazards model of the form \eqn{h(\mathbf{t})=h_0(\mathbf{t})\exp(g(\mathbf{X}))}.
@@ -57,7 +57,7 @@
 #' @export
 #'
 streg <- function(formula, data, weights, subset, na.action, dist = "weibull", pfixed=NULL,
-                  init = NULL, init.search=TRUE, max.method="NR", control=NULL, model=TRUE,
+                  init = NULL, init.search=TRUE, max.method="BFGS", control=NULL, model=TRUE,
                   x=TRUE, z=TRUE, y = TRUE, robust = FALSE, cluster, metric="PH",
                   ...)
 {
@@ -188,7 +188,7 @@ streg <- function(formula, data, weights, subset, na.action, dist = "weibull", p
       else stinit <- streg.fit(model.matrix(zTerms, m),Z,Y,weights, offset, init=NULL, pfixed,
                             max.method=max.method, control=control, dist=dist,
                             ...)
-      stinit <- stinit$estimate
+      stinit <- stinit$par
       init <- c(init, stinit)[c(names(stinit[1]), names(cinit), names(stinit)[-1])]
     }
   }
@@ -201,8 +201,8 @@ streg <- function(formula, data, weights, subset, na.action, dist = "weibull", p
   else {
     fit$maximum <- fit$maximum + logcorrect
     nvar <- ncol(X)
-    fit$coefficients <- fit$estimate[1:nvar]
-    fit$df <- length(fit$estimate)
+    fit$coefficients <- fit$par[1:nvar]
+    fit$df <- length(fit$par)
     fit$df.residual <- n - fit$df
     fit$terms <- Terms
     fit$contrasts <- contr.save

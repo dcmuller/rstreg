@@ -9,7 +9,7 @@ print.streg <- function (x, ...)
     cat(" streg failed.", x$fail, "\n")
     return(invisible(x))
   }
-  coef <- x$estimate
+  coef <- x$par
   if (any(nas <- is.na(coef))) {
     if (is.null(names(coef)))
       names(coef) <- paste("b", 1:length(coef), sep = "")
@@ -22,7 +22,7 @@ print.streg <- function (x, ...)
     cat("\np fixed at", format(x$pfixed), "\n")
 
   nobs <- length(x$linear.predictors)
-  cat("\nLog Likelihood (model) = ", format(round(x$maximum[1], 3)))
+  cat("\nLog Likelihood (model) = ", format(round(x$value[1], 3)))
   cat("\n")
   omit <- x$na.action
   if (length(omit))

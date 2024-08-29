@@ -8,9 +8,9 @@
 #' @param offset offset for the linear predictor of the regression equation
 #' @param init vector of initial values
 #' @param pfixed value to fix auxiliary parameter p at.
-#' @param control control list passed to [maxLik::maxLik()]
+#' @param control control list passed to [roptim]
 #' @param dist survival distribution
-#' @param max.method maximisation method passed to [maxLik::maxLik()]
+#' @param max.method maximisation method passed to [roptim]
 #' @param ... for future methods
 #'
 #' @export
@@ -54,8 +54,18 @@ streg.fit <- function(x, z, y, weights, offset, init, pfixed, control, dist, max
     exit <- y[, "time"]
     enter <- rep(0, length(exit))
   }
-  fit <- maxLik(weibull_ll, grad=weibull_gr, start=init,
-                X=x, Z=z, tt=exit, tt0=enter, d=status, pfixed=pfixed, w=weights, offset=offset, method=max.method, control=control)
-  fit$linear.predictors <- c(x %*% fit$estimate[colnames(x)] + offset)
+#  fit <- maxLik(weibull_ll, grad=weibull_gr, hess=weibull_hess, start=init,
+#                X=x, Z=z, tt=exit, tt0=enter, d=status, pfixed=pfixed, w=weights, offset=offset, method=max.method, control=control)
+  fit <- weibull(X=x, Z=z, tt=exit, tt0=enter, d=status,
+                 pfixed=pfixed, w=weights, offset=offset,
+                 method=max.method, control=control, print=0, init_theta=init)
+  fit$par <- as.vector(fit$par)
+  names(fit$par) <- names(init)
+  fit$hessian_numerical <- fit$hessian
+  fit$linear.predictors <- c(x %*% fit$par[colnames(x)] + offset)
+  fit$gradientObs <- weibull_gr(fit$par,x,z,enter,exit,status,pfixed,weights,offset)
+  dimnames(fit$gradientObs) <- list(rownames(x), names(init))
+  fit$hessian <- weibull_hess(fit$par,x,z,enter,exit,status,pfixed,weights,offset)
+  dimnames(fit$hessian) <- list(names(init), names(init))
   return(fit)
 }
