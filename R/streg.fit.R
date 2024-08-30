@@ -61,7 +61,6 @@ streg.fit <- function(x, z, y, weights, offset, init, pfixed, control, dist, max
                  method=max.method, control=control, print=0, init_theta=init)
   fit$par <- as.vector(fit$par)
   names(fit$par) <- names(init)
-  fit$hessian_numerical <- fit$hessian
   fit$linear.predictors <- c(x %*% fit$par[colnames(x)] + offset)
   fit$gradientObs <- weibull_gr(fit$par,x,z,enter,exit,status,pfixed,weights,offset)
   dimnames(fit$gradientObs) <- list(rownames(x), names(init))

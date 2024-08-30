@@ -51,6 +51,7 @@ arma::mat weibull_hess(const arma::vec& theta, const arma::mat& X, Nullable<arma
   // Hessian for beta terms
   mat Hbb = zeros<mat>(pX, pX);
   for (int i = 0; i < n; ++i) {
+    double log_lambda_i = log_lambda[i];
     double lambda_i = lambda[i];
     double log_tt_i = log(tt[i]);
     double log_tt0_i = log(tt0[i]);
@@ -59,8 +60,9 @@ arma::mat weibull_hess(const arma::vec& theta, const arma::mat& X, Nullable<arma
     double p_i = p[i];
     vec X_i = X.row(i).t();
 
-    double term1 = tt0_i>0 ? exp(p_i*log_tt0_i) : 0;
-    double tmpval_bb = w_i * lambda_i * (term1 - exp(p_i*log_tt_i));
+    double termt0 = tt0_i>0 ? exp(p_i*log_tt0_i + log_lambda_i) : 0;
+    double termt = exp(p_i*log_tt_i + log_lambda_i);
+    double tmpval_bb = w_i * (termt0 - termt);
 
     vec tmpvec_bb(X_i.n_elem, fill::zeros);
     for(int j=0; j<tmpvec_bb.n_elem; ++j)
@@ -76,6 +78,7 @@ arma::mat weibull_hess(const arma::vec& theta, const arma::mat& X, Nullable<arma
     mat Hpb = zeros<mat>(pX, pZ);
     mat Hpp = zeros<mat>(pZ, pZ);
     for (int i = 0; i < n; ++i) {
+      double log_lambda_i = log_lambda[i];
       double lambda_i = lambda[i];
       double log_tt_i = log_tt[i];
       double log_tt0_i = log_tt0[i];
@@ -86,8 +89,9 @@ arma::mat weibull_hess(const arma::vec& theta, const arma::mat& X, Nullable<arma
       vec X_i = X.row(i).t();
       vec Z_i = as<mat>(Z).row(i).t();
 
-      double term1 = tt0_i > 0 ? exp(p_i*log_tt0_i)*log_tt0_i : 0;
-      double tmpval_pb = w_i * lambda_i * p_i * (term1 - exp(p_i*log_tt_i)*log_tt_i);
+    double termt0 = tt0_i>0 ? exp(p_i*log_tt0_i + log_lambda_i) : 0;
+    double termt = exp(p_i*log_tt_i + log_lambda_i);
+      double tmpval_pb = w_i * p_i * (termt0*log_tt0_i - termt*log_tt_i);
       vec tmpvec_pb(X_i.n_elem, fill::zeros);
       for(int j=0; j<tmpvec_pb.n_elem; ++j)
         tmpvec_pb[j] += tmpval_pb;
@@ -95,9 +99,9 @@ arma::mat weibull_hess(const arma::vec& theta, const arma::mat& X, Nullable<arma
       mat tmp_pb = (X_i % tmpvec_pb) * Z_i.t() ;
       Hpb += tmp_pb;
 
-      double tmpval_pp = w_i*(d_i*p_i*log_tt_i + lambda_i *
-                                (term1*p_i*log_tt0_i*(1+p_i*log_tt0_i) -
-                                exp(p_i*log_tt_i)*p_i*log_tt_i*(1+p_i*log_tt_i)));
+      double tmpval_pp = w_i*p_i*(d_i*log_tt_i +
+                                  (termt0*log_tt0_i*(1+p_i*log_tt0_i) -
+                                  termt*log_tt_i*(1+p_i*log_tt_i)));
 
       vec tmpvec_pp(Z_i.n_elem, fill::zeros);
       for(int j=0; j<tmpvec_pp.n_elem; ++j)
@@ -107,7 +111,7 @@ arma::mat weibull_hess(const arma::vec& theta, const arma::mat& X, Nullable<arma
       Hpp += tmp_pp;
     }
     H.submat(0, pX, pX-1, theta.n_elem - 1) = Hpb;
-    H.submat(pX, 0, pX + pZ - 1, pX - 1) = Hpb.t();
+    H.submat(pX, 0, theta.n_elem - 1, pX - 1) = Hpb.t();
     H.submat(pX, pX, theta.n_elem - 1, theta.n_elem - 1) = Hpp;
   }
   return H;
