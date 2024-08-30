@@ -40,42 +40,42 @@ arma::mat weibull_gr(const arma::vec& theta, const arma::mat& X, Nullable<arma::
   }
   vec p = exp(log_p);
 
+  vec log_tt = log(tt);
+  vec log_tt0 = arma::vec(n, fill::zeros);
+  for (int i=0; i<n; ++i)
+    log_tt0[i] = tt0[i]>0 ? log(tt0[i]) : 0;
+
   // Gradient computation
   mat gr(n, theta.n_elem, fill::zeros);
 
   // Gradient for beta terms
   for (int i = 0; i < n; ++i) {
     double lambda_i = lambda[i];
-    double tt_i = tt[i];
     double tt0_i = tt0[i];
+    double log_tt_i = log_tt[i];
+    double log_tt0_i = log_tt0[i];
     double w_i = w[i];
     double p_i = p[i];
     double d_i = d[i];
     vec X_i = X.row(i).t();
-    double tmp1=0;
-    if (tt0_i > 0) {
-      tmp1 = exp(p_i * log(tt0_i));
-    }
-    double tmp2 = exp(p_i * log(tt_i));
-    double tmpval1 = w_i *(d_i + lambda_i * (tmp1 - tmp2));
-    vec tmpvec1(X_i.n_elem, fill::zeros);
-      for(int j=0; j<tmpvec1.n_elem; ++j)
-        tmpvec1[j] += tmpval1;
+    double term1 = tt0_i > 0 ? exp(p_i*log_tt0_i) : 0;
+    double tmpval_b = w_i * (d_i + lambda_i * (term1 - exp(p_i*log_tt_i)));
+    vec tmpvec_b(X_i.n_elem, fill::zeros);
+      for(int j=0; j<tmpvec_b.n_elem; ++j)
+        tmpvec_b[j] += tmpval_b;
 
-    gr.row(i).head(pX) = (X_i % tmpvec1).t();
+    gr.row(i).head(X_i.n_elem) = (X_i % tmpvec_b).t();
 
+    // gradient for gamma terms
     if (pZ > 0) {
       vec Z_i = as<mat>(Z).row(i).t();
-      double tmp1 = 0;
-      if (tt0_i > 0)
-        tmp1 = exp(p_i * log(tt0_i)) * log(tt0_i);
-      double tmp2 = exp(p_i * log(tt_i)) * log(tt_i);
-      double tmpval2 = w_i*(d_i*(1.0 + p_i*log(tt_i)) + lambda_i * p_i * (tmp1 - tmp2));
-      vec tmpvec2(Z_i.n_elem, fill::zeros);
-      for(int j=0; j<tmpvec2.n_elem; ++j)
-        tmpvec2[j] += tmpval2;
+      double tmpval_p = w_i * (d_i*(1 + p_i*log_tt_i) +
+        lambda_i*p_i*(exp(p_i*log_tt0_i)*log_tt0_i - exp(p_i*log_tt_i)*log_tt_i));
+      vec tmpvec_p(Z_i.n_elem, fill::zeros);
+      for(int j=0; j<tmpvec_p.n_elem; ++j)
+        tmpvec_p[j] += tmpval_p;
 
-      gr.row(i).tail(pZ) = (Z_i % tmpvec2).t();
+      gr.row(i).tail(pZ) = (Z_i % tmpvec_p).t();
     }
   }
   return gr;

@@ -44,7 +44,6 @@
 #' @author David C Muller
 #'
 #' @import survival
-#' @import maxLik
 #'
 #' @export
 

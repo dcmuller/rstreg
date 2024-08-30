@@ -17,8 +17,8 @@ print.summary.streg <- function(x, digits = max(options()$digits - 4, 3),
   cat("Log Likelihood (model)=", format(round(x$maximum[1],3)))
   cat("\n")
   if (x$robust) cat("(Log Likelihood assumes independent observations)\n")
-  cat("Number of Iterations:", format(trunc(x$iterations)),
-      "\n")
+#  cat("Number of Iterations:", format(trunc(x$iterations)),
+#      "\n")
   omit <- x$na.action
   if (length(omit))
     cat("n=", x$n, " (", naprint(omit), ")\n", sep="")

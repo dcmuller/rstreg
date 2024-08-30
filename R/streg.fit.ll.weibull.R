@@ -15,6 +15,9 @@ streg.fit.ll.weibull <- function(theta,X,Z,tt0=NULL,tt,d,pfixed,w=NULL,offset=of
     log_p <- drop(Z%*%gamma)
   p <- exp(log_p)
 
+  log_tt <- log(tt)
+  log_tt0 <- ifelse(tt0>0,log(tt0),0)
+
   ll <- w*(d*(log_lambda + log_p + (p-1)*log(tt)) - lambda*exp(p*log(tt)) + ifelse(tt0>0, lambda*exp(p*log(tt0)), 0))
 
   ## matrix of observation-level gradient vectors (scores)
@@ -32,13 +35,11 @@ streg.fit.ll.weibull <- function(theta,X,Z,tt0=NULL,tt,d,pfixed,w=NULL,offset=of
   Hbb <- t(w*X*as.vector(lambda) * as.vector(ifelse(tt0>0, exp(p*log(tt0)),0) - exp(p*log(tt)))) %*% X
   H[names(beta),names(beta)] <- Hbb
   if (!is.null(Z)) {
-    Hpb <- t(w*X*as.vector(lambda)*as.vector(p)*as.vector(ifelse(tt0>0,exp(p*log(tt0)) * log(tt0),0) - exp(p*log(tt)) * log(tt))) %*% Z
+    Hpb <- t(w*X*as.vector(lambda)*as.vector(p)*
+               as.vector(ifelse(tt0>0,exp(p*log(tt0)) * log(tt0),0) - exp(p*log(tt)) * log(tt))) %*% Z
     Hpp <- t(w * Z *
-               as.vector(d * log(tt) + lambda*
-                           (p*(ifelse(tt0>0, exp(p*log(tt0)) * log(tt0)^2,0)
-                               - exp(p*log(tt)) * log(tt)^2) +
-                              ifelse(tt0>0, exp(p*log(tt0)) * log(tt0),0) - exp(p*log(tt)) * log(tt))
-                         * p )) %*% Z
+               as.vector(d*p*log_tt - lambda*exp(p*log_tt)*p*log_tt*(1+p*log_tt) +
+                           lambda*exp(p*log_tt0)*p*log_tt0*(1+p*log_tt0))) %*% Z
     H[rownames(Hpb), colnames(Hpb)] <- Hpb
     H[colnames(Hpb), rownames(Hpb)] <- t(Hpb)
     H[rownames(Hpp), colnames(Hpp)] <- Hpp

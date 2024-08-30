@@ -11,6 +11,28 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
+// weibull
+Rcpp::List weibull(const arma::mat& X, Nullable<arma::mat> Z, const arma::vec& tt0, const arma::vec& tt, const arma::vec& d, const Nullable<arma::vec>& pfixed, const arma::vec& w, const arma::vec& offset, bool print, const arma::vec init_theta, const Rcpp::String method, const Nullable<Rcpp::List>& control);
+RcppExport SEXP _rstreg_weibull(SEXP XSEXP, SEXP ZSEXP, SEXP tt0SEXP, SEXP ttSEXP, SEXP dSEXP, SEXP pfixedSEXP, SEXP wSEXP, SEXP offsetSEXP, SEXP printSEXP, SEXP init_thetaSEXP, SEXP methodSEXP, SEXP controlSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::mat& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< Nullable<arma::mat> >::type Z(ZSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type tt0(tt0SEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type tt(ttSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type d(dSEXP);
+    Rcpp::traits::input_parameter< const Nullable<arma::vec>& >::type pfixed(pfixedSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type w(wSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type offset(offsetSEXP);
+    Rcpp::traits::input_parameter< bool >::type print(printSEXP);
+    Rcpp::traits::input_parameter< const arma::vec >::type init_theta(init_thetaSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::String >::type method(methodSEXP);
+    Rcpp::traits::input_parameter< const Nullable<Rcpp::List>& >::type control(controlSEXP);
+    rcpp_result_gen = Rcpp::wrap(weibull(X, Z, tt0, tt, d, pfixed, w, offset, print, init_theta, method, control));
+    return rcpp_result_gen;
+END_RCPP
+}
 // weibull_gr
 arma::mat weibull_gr(const arma::vec& theta, const arma::mat& X, Nullable<arma::mat> Z, const arma::vec& tt0, const arma::vec& tt, const arma::vec& d, const Nullable<arma::vec>& pfixed, const arma::vec& w, const arma::vec& offset);
 RcppExport SEXP _rstreg_weibull_gr(SEXP thetaSEXP, SEXP XSEXP, SEXP ZSEXP, SEXP tt0SEXP, SEXP ttSEXP, SEXP dSEXP, SEXP pfixedSEXP, SEXP wSEXP, SEXP offsetSEXP) {
@@ -70,6 +92,7 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_rstreg_weibull", (DL_FUNC) &_rstreg_weibull, 12},
     {"_rstreg_weibull_gr", (DL_FUNC) &_rstreg_weibull_gr, 9},
     {"_rstreg_weibull_hess", (DL_FUNC) &_rstreg_weibull_hess, 9},
     {"_rstreg_weibull_ll", (DL_FUNC) &_rstreg_weibull_ll, 9},
