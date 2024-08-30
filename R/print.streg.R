@@ -22,7 +22,7 @@ print.streg <- function (x, ...)
     cat("\np fixed at", format(x$pfixed), "\n")
 
   nobs <- length(x$linear.predictors)
-  cat("\nLog Likelihood (model) = ", format(round(x$value[1], 3)))
+  cat("\nLog Likelihood (model) = ", format(round(x$maximum, 3)))
   cat("\n")
   omit <- x$na.action
   if (length(omit))

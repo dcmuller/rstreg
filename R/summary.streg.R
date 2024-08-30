@@ -41,7 +41,7 @@ summary.streg <- function(object, ...)
     colnames(eform.table)[1] <- "Haz.Ratio"
   }
 
-  x <- object[match(c('call', 'df', 'value', 'iterations', 'na.action',
+  x <- object[match(c('call', 'df', 'maximum', 'na.action',
                       'coefficients', 'estimates', 'var', 'pfixed'),
                     names(object), nomatch=0)]
   x <- c(x, list(table=table, eform.table=eform.table, n=n),

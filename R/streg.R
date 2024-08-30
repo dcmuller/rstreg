@@ -199,7 +199,7 @@ streg <- function(formula, data, weights, subset, na.action, dist = "weibull", p
   if (is.character(fit))
     fit <- list(fail = fit)
   else {
-    fit$maximum <- fit$maximum + logcorrect
+    fit$maximum <- fit$value + logcorrect
     nvar <- ncol(X)
     fit$coefficients <- fit$par[1:nvar]
     fit$df <- length(fit$par)
