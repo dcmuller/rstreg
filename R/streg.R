@@ -177,17 +177,30 @@ streg <- function(formula, data, weights, subset, na.action, dist = "weibull", p
       coxcall <- Call[!is.na(match(names(Call), c("", "formula","data", "weights", "cluster")))]
       coxcall <- coxcall[unlist(lapply(coxcall, function(x) !is.null(x)))]
       coxcall[[1]] <- quote(coxph)
-      cinit <- eval(coxcall)
+      cinit <- suppressWarnings(eval(coxcall))
       cinit <- coef(cinit)
       init <- cinit
       if (is.null(pfixed)) {
-        stinit <- streg.fit(Z, Z, Y, weights, offset, init=NULL, pfixed,
+        if (is.null(weights))
+            pinit <- -coef(lm.fit(Z[exactsurv, ,drop=FALSE],
+                                  log(Y[exactsurv, ncol(Y)-1]),
+                                  offset=offset[exactsurv]))
+        else
+          pinit <- -coef(lm.wfit(Z[exactsurv, ,drop=FALSE],
+                                 log(Y[exactsurv, ncol(Y)-1]),
+                                 w=weights[exactsurv], offset=offset))
+        pinit <- c(pinit, rep(0, length(pinit)))
+        stinit <- streg.fit(Z, Z, Y, weights, offset, init=pinit, pfixed,
                             max.method=max.method, control=control, dist=dist,
                             ...)
       }
-      else stinit <- streg.fit(model.matrix(zTerms, m),Z,Y,weights, offset, init=NULL, pfixed,
+      else {
+        pinit <- -mean(log(weights[exactsurv]*Y[exactsurv, ncol(Y)-1]/sum(weights[exactsurv])))
+        pinit <- c(pinit, rep(0, length(pinit)))
+        stinit <- streg.fit(model.matrix(zTerms, m),Z,Y,weights, offset, init=NULL, pfixed,
                             max.method=max.method, control=control, dist=dist,
                             ...)
+      }
       stinit <- stinit$par
       init <- c(init, stinit)[c(names(stinit[1]), names(cinit), names(stinit)[-1])]
     }
