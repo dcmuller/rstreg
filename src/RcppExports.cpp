@@ -3,6 +3,8 @@
 
 #include <RcppArmadillo.h>
 #include <Rcpp.h>
+#include <string>
+#include <set>
 
 using namespace Rcpp;
 
@@ -11,9 +13,9 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
-// weibull
-Rcpp::List weibull(const arma::mat& X, Nullable<arma::mat> Z, const arma::vec& tt0, const arma::vec& tt, const arma::vec& d, const Nullable<arma::vec>& pfixed, const arma::vec& w, const arma::vec& offset, bool print, const arma::vec init_theta, const Rcpp::String method, const Nullable<Rcpp::List>& control);
-RcppExport SEXP _rstreg_weibull(SEXP XSEXP, SEXP ZSEXP, SEXP tt0SEXP, SEXP ttSEXP, SEXP dSEXP, SEXP pfixedSEXP, SEXP wSEXP, SEXP offsetSEXP, SEXP printSEXP, SEXP init_thetaSEXP, SEXP methodSEXP, SEXP controlSEXP) {
+// weibull_optimize
+Rcpp::List weibull_optimize(const arma::mat& X, Nullable<arma::mat> Z, const arma::vec& tt0, const arma::vec& tt, const arma::vec& d, const Nullable<arma::vec>& pfixed, const arma::vec& w, const arma::vec& offset, bool print, const arma::vec init_theta, const Rcpp::String method, const Nullable<Rcpp::List>& control);
+RcppExport SEXP _rstreg_weibull_optimize(SEXP XSEXP, SEXP ZSEXP, SEXP tt0SEXP, SEXP ttSEXP, SEXP dSEXP, SEXP pfixedSEXP, SEXP wSEXP, SEXP offsetSEXP, SEXP printSEXP, SEXP init_thetaSEXP, SEXP methodSEXP, SEXP controlSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -29,16 +31,15 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const arma::vec >::type init_theta(init_thetaSEXP);
     Rcpp::traits::input_parameter< const Rcpp::String >::type method(methodSEXP);
     Rcpp::traits::input_parameter< const Nullable<Rcpp::List>& >::type control(controlSEXP);
-    rcpp_result_gen = Rcpp::wrap(weibull(X, Z, tt0, tt, d, pfixed, w, offset, print, init_theta, method, control));
+    rcpp_result_gen = Rcpp::wrap(weibull_optimize(X, Z, tt0, tt, d, pfixed, w, offset, print, init_theta, method, control));
     return rcpp_result_gen;
 END_RCPP
 }
 // weibull_gr
 arma::mat weibull_gr(const arma::vec& theta, const arma::mat& X, Nullable<arma::mat> Z, const arma::vec& tt0, const arma::vec& tt, const arma::vec& d, const Nullable<arma::vec>& pfixed, const arma::vec& w, const arma::vec& offset);
-RcppExport SEXP _rstreg_weibull_gr(SEXP thetaSEXP, SEXP XSEXP, SEXP ZSEXP, SEXP tt0SEXP, SEXP ttSEXP, SEXP dSEXP, SEXP pfixedSEXP, SEXP wSEXP, SEXP offsetSEXP) {
+static SEXP _rstreg_weibull_gr_try(SEXP thetaSEXP, SEXP XSEXP, SEXP ZSEXP, SEXP tt0SEXP, SEXP ttSEXP, SEXP dSEXP, SEXP pfixedSEXP, SEXP wSEXP, SEXP offsetSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const arma::vec& >::type theta(thetaSEXP);
     Rcpp::traits::input_parameter< const arma::mat& >::type X(XSEXP);
     Rcpp::traits::input_parameter< Nullable<arma::mat> >::type Z(ZSEXP);
@@ -50,14 +51,37 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const arma::vec& >::type offset(offsetSEXP);
     rcpp_result_gen = Rcpp::wrap(weibull_gr(theta, X, Z, tt0, tt, d, pfixed, w, offset));
     return rcpp_result_gen;
-END_RCPP
+END_RCPP_RETURN_ERROR
+}
+RcppExport SEXP _rstreg_weibull_gr(SEXP thetaSEXP, SEXP XSEXP, SEXP ZSEXP, SEXP tt0SEXP, SEXP ttSEXP, SEXP dSEXP, SEXP pfixedSEXP, SEXP wSEXP, SEXP offsetSEXP) {
+    SEXP rcpp_result_gen;
+    {
+        Rcpp::RNGScope rcpp_rngScope_gen;
+        rcpp_result_gen = PROTECT(_rstreg_weibull_gr_try(thetaSEXP, XSEXP, ZSEXP, tt0SEXP, ttSEXP, dSEXP, pfixedSEXP, wSEXP, offsetSEXP));
+    }
+    Rboolean rcpp_isInterrupt_gen = Rf_inherits(rcpp_result_gen, "interrupted-error");
+    if (rcpp_isInterrupt_gen) {
+        UNPROTECT(1);
+        Rf_onintr();
+    }
+    bool rcpp_isLongjump_gen = Rcpp::internal::isLongjumpSentinel(rcpp_result_gen);
+    if (rcpp_isLongjump_gen) {
+        Rcpp::internal::resumeJump(rcpp_result_gen);
+    }
+    Rboolean rcpp_isError_gen = Rf_inherits(rcpp_result_gen, "try-error");
+    if (rcpp_isError_gen) {
+        SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
+        UNPROTECT(1);
+        Rf_error("%s", CHAR(rcpp_msgSEXP_gen));
+    }
+    UNPROTECT(1);
+    return rcpp_result_gen;
 }
 // weibull_hess
 arma::mat weibull_hess(const arma::vec& theta, const arma::mat& X, Nullable<arma::mat> Z, const arma::vec& tt0, const arma::vec& tt, const arma::vec& d, const Nullable<arma::vec>& pfixed, const arma::vec& w, const arma::vec& offset);
-RcppExport SEXP _rstreg_weibull_hess(SEXP thetaSEXP, SEXP XSEXP, SEXP ZSEXP, SEXP tt0SEXP, SEXP ttSEXP, SEXP dSEXP, SEXP pfixedSEXP, SEXP wSEXP, SEXP offsetSEXP) {
+static SEXP _rstreg_weibull_hess_try(SEXP thetaSEXP, SEXP XSEXP, SEXP ZSEXP, SEXP tt0SEXP, SEXP ttSEXP, SEXP dSEXP, SEXP pfixedSEXP, SEXP wSEXP, SEXP offsetSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const arma::vec& >::type theta(thetaSEXP);
     Rcpp::traits::input_parameter< const arma::mat& >::type X(XSEXP);
     Rcpp::traits::input_parameter< Nullable<arma::mat> >::type Z(ZSEXP);
@@ -69,14 +93,82 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const arma::vec& >::type offset(offsetSEXP);
     rcpp_result_gen = Rcpp::wrap(weibull_hess(theta, X, Z, tt0, tt, d, pfixed, w, offset));
     return rcpp_result_gen;
-END_RCPP
+END_RCPP_RETURN_ERROR
+}
+RcppExport SEXP _rstreg_weibull_hess(SEXP thetaSEXP, SEXP XSEXP, SEXP ZSEXP, SEXP tt0SEXP, SEXP ttSEXP, SEXP dSEXP, SEXP pfixedSEXP, SEXP wSEXP, SEXP offsetSEXP) {
+    SEXP rcpp_result_gen;
+    {
+        Rcpp::RNGScope rcpp_rngScope_gen;
+        rcpp_result_gen = PROTECT(_rstreg_weibull_hess_try(thetaSEXP, XSEXP, ZSEXP, tt0SEXP, ttSEXP, dSEXP, pfixedSEXP, wSEXP, offsetSEXP));
+    }
+    Rboolean rcpp_isInterrupt_gen = Rf_inherits(rcpp_result_gen, "interrupted-error");
+    if (rcpp_isInterrupt_gen) {
+        UNPROTECT(1);
+        Rf_onintr();
+    }
+    bool rcpp_isLongjump_gen = Rcpp::internal::isLongjumpSentinel(rcpp_result_gen);
+    if (rcpp_isLongjump_gen) {
+        Rcpp::internal::resumeJump(rcpp_result_gen);
+    }
+    Rboolean rcpp_isError_gen = Rf_inherits(rcpp_result_gen, "try-error");
+    if (rcpp_isError_gen) {
+        SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
+        UNPROTECT(1);
+        Rf_error("%s", CHAR(rcpp_msgSEXP_gen));
+    }
+    UNPROTECT(1);
+    return rcpp_result_gen;
+}
+// weibull_inplace
+void weibull_inplace(double& llval, arma::mat& grObsval, arma::vec& grval, arma::mat& hessval, const arma::vec& theta, const arma::mat& X, const Nullable<arma::mat>& Z, const arma::vec& tt0, const arma::vec& tt, const arma::vec& d, const Nullable<arma::vec>& pfixed, const arma::vec& w, const arma::vec& offset);
+static SEXP _rstreg_weibull_inplace_try(SEXP llvalSEXP, SEXP grObsvalSEXP, SEXP grvalSEXP, SEXP hessvalSEXP, SEXP thetaSEXP, SEXP XSEXP, SEXP ZSEXP, SEXP tt0SEXP, SEXP ttSEXP, SEXP dSEXP, SEXP pfixedSEXP, SEXP wSEXP, SEXP offsetSEXP) {
+BEGIN_RCPP
+    Rcpp::traits::input_parameter< double& >::type llval(llvalSEXP);
+    Rcpp::traits::input_parameter< arma::mat& >::type grObsval(grObsvalSEXP);
+    Rcpp::traits::input_parameter< arma::vec& >::type grval(grvalSEXP);
+    Rcpp::traits::input_parameter< arma::mat& >::type hessval(hessvalSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< const Nullable<arma::mat>& >::type Z(ZSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type tt0(tt0SEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type tt(ttSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type d(dSEXP);
+    Rcpp::traits::input_parameter< const Nullable<arma::vec>& >::type pfixed(pfixedSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type w(wSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type offset(offsetSEXP);
+    weibull_inplace(llval, grObsval, grval, hessval, theta, X, Z, tt0, tt, d, pfixed, w, offset);
+    return R_NilValue;
+END_RCPP_RETURN_ERROR
+}
+RcppExport SEXP _rstreg_weibull_inplace(SEXP llvalSEXP, SEXP grObsvalSEXP, SEXP grvalSEXP, SEXP hessvalSEXP, SEXP thetaSEXP, SEXP XSEXP, SEXP ZSEXP, SEXP tt0SEXP, SEXP ttSEXP, SEXP dSEXP, SEXP pfixedSEXP, SEXP wSEXP, SEXP offsetSEXP) {
+    SEXP rcpp_result_gen;
+    {
+        Rcpp::RNGScope rcpp_rngScope_gen;
+        rcpp_result_gen = PROTECT(_rstreg_weibull_inplace_try(llvalSEXP, grObsvalSEXP, grvalSEXP, hessvalSEXP, thetaSEXP, XSEXP, ZSEXP, tt0SEXP, ttSEXP, dSEXP, pfixedSEXP, wSEXP, offsetSEXP));
+    }
+    Rboolean rcpp_isInterrupt_gen = Rf_inherits(rcpp_result_gen, "interrupted-error");
+    if (rcpp_isInterrupt_gen) {
+        UNPROTECT(1);
+        Rf_onintr();
+    }
+    bool rcpp_isLongjump_gen = Rcpp::internal::isLongjumpSentinel(rcpp_result_gen);
+    if (rcpp_isLongjump_gen) {
+        Rcpp::internal::resumeJump(rcpp_result_gen);
+    }
+    Rboolean rcpp_isError_gen = Rf_inherits(rcpp_result_gen, "try-error");
+    if (rcpp_isError_gen) {
+        SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
+        UNPROTECT(1);
+        Rf_error("%s", CHAR(rcpp_msgSEXP_gen));
+    }
+    UNPROTECT(1);
+    return rcpp_result_gen;
 }
 // weibull_ll
 arma::vec weibull_ll(const arma::vec& theta, const arma::mat& X, Nullable<arma::mat> Z, const arma::vec& tt0, const arma::vec& tt, const arma::vec& d, const Nullable<arma::vec>& pfixed, const arma::vec& w, const arma::vec& offset);
-RcppExport SEXP _rstreg_weibull_ll(SEXP thetaSEXP, SEXP XSEXP, SEXP ZSEXP, SEXP tt0SEXP, SEXP ttSEXP, SEXP dSEXP, SEXP pfixedSEXP, SEXP wSEXP, SEXP offsetSEXP) {
+static SEXP _rstreg_weibull_ll_try(SEXP thetaSEXP, SEXP XSEXP, SEXP ZSEXP, SEXP tt0SEXP, SEXP ttSEXP, SEXP dSEXP, SEXP pfixedSEXP, SEXP wSEXP, SEXP offsetSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const arma::vec& >::type theta(thetaSEXP);
     Rcpp::traits::input_parameter< const arma::mat& >::type X(XSEXP);
     Rcpp::traits::input_parameter< Nullable<arma::mat> >::type Z(ZSEXP);
@@ -88,14 +180,110 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const arma::vec& >::type offset(offsetSEXP);
     rcpp_result_gen = Rcpp::wrap(weibull_ll(theta, X, Z, tt0, tt, d, pfixed, w, offset));
     return rcpp_result_gen;
-END_RCPP
+END_RCPP_RETURN_ERROR
+}
+RcppExport SEXP _rstreg_weibull_ll(SEXP thetaSEXP, SEXP XSEXP, SEXP ZSEXP, SEXP tt0SEXP, SEXP ttSEXP, SEXP dSEXP, SEXP pfixedSEXP, SEXP wSEXP, SEXP offsetSEXP) {
+    SEXP rcpp_result_gen;
+    {
+        Rcpp::RNGScope rcpp_rngScope_gen;
+        rcpp_result_gen = PROTECT(_rstreg_weibull_ll_try(thetaSEXP, XSEXP, ZSEXP, tt0SEXP, ttSEXP, dSEXP, pfixedSEXP, wSEXP, offsetSEXP));
+    }
+    Rboolean rcpp_isInterrupt_gen = Rf_inherits(rcpp_result_gen, "interrupted-error");
+    if (rcpp_isInterrupt_gen) {
+        UNPROTECT(1);
+        Rf_onintr();
+    }
+    bool rcpp_isLongjump_gen = Rcpp::internal::isLongjumpSentinel(rcpp_result_gen);
+    if (rcpp_isLongjump_gen) {
+        Rcpp::internal::resumeJump(rcpp_result_gen);
+    }
+    Rboolean rcpp_isError_gen = Rf_inherits(rcpp_result_gen, "try-error");
+    if (rcpp_isError_gen) {
+        SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
+        UNPROTECT(1);
+        Rf_error("%s", CHAR(rcpp_msgSEXP_gen));
+    }
+    UNPROTECT(1);
+    return rcpp_result_gen;
+}
+// weibull_max_nr
+List weibull_max_nr(const int maxiter, const arma::mat& X, const Nullable<arma::mat> Z, const arma::vec& tt0, const arma::vec& tt, const arma::vec& d, const Nullable<arma::vec> pfixed, const arma::vec& wt, const arma::vec& offset, const arma::vec& theta, const double eps, const double tol);
+static SEXP _rstreg_weibull_max_nr_try(SEXP maxiterSEXP, SEXP XSEXP, SEXP ZSEXP, SEXP tt0SEXP, SEXP ttSEXP, SEXP dSEXP, SEXP pfixedSEXP, SEXP wtSEXP, SEXP offsetSEXP, SEXP thetaSEXP, SEXP epsSEXP, SEXP tolSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< const int >::type maxiter(maxiterSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< const Nullable<arma::mat> >::type Z(ZSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type tt0(tt0SEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type tt(ttSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type d(dSEXP);
+    Rcpp::traits::input_parameter< const Nullable<arma::vec> >::type pfixed(pfixedSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type wt(wtSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type offset(offsetSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< const double >::type eps(epsSEXP);
+    Rcpp::traits::input_parameter< const double >::type tol(tolSEXP);
+    rcpp_result_gen = Rcpp::wrap(weibull_max_nr(maxiter, X, Z, tt0, tt, d, pfixed, wt, offset, theta, eps, tol));
+    return rcpp_result_gen;
+END_RCPP_RETURN_ERROR
+}
+RcppExport SEXP _rstreg_weibull_max_nr(SEXP maxiterSEXP, SEXP XSEXP, SEXP ZSEXP, SEXP tt0SEXP, SEXP ttSEXP, SEXP dSEXP, SEXP pfixedSEXP, SEXP wtSEXP, SEXP offsetSEXP, SEXP thetaSEXP, SEXP epsSEXP, SEXP tolSEXP) {
+    SEXP rcpp_result_gen;
+    {
+        Rcpp::RNGScope rcpp_rngScope_gen;
+        rcpp_result_gen = PROTECT(_rstreg_weibull_max_nr_try(maxiterSEXP, XSEXP, ZSEXP, tt0SEXP, ttSEXP, dSEXP, pfixedSEXP, wtSEXP, offsetSEXP, thetaSEXP, epsSEXP, tolSEXP));
+    }
+    Rboolean rcpp_isInterrupt_gen = Rf_inherits(rcpp_result_gen, "interrupted-error");
+    if (rcpp_isInterrupt_gen) {
+        UNPROTECT(1);
+        Rf_onintr();
+    }
+    bool rcpp_isLongjump_gen = Rcpp::internal::isLongjumpSentinel(rcpp_result_gen);
+    if (rcpp_isLongjump_gen) {
+        Rcpp::internal::resumeJump(rcpp_result_gen);
+    }
+    Rboolean rcpp_isError_gen = Rf_inherits(rcpp_result_gen, "try-error");
+    if (rcpp_isError_gen) {
+        SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
+        UNPROTECT(1);
+        Rf_error("%s", CHAR(rcpp_msgSEXP_gen));
+    }
+    UNPROTECT(1);
+    return rcpp_result_gen;
+}
+
+// validate (ensure exported C++ functions exist before calling them)
+static int _rstreg_RcppExport_validate(const char* sig) { 
+    static std::set<std::string> signatures;
+    if (signatures.empty()) {
+        signatures.insert("arma::mat(*weibull_gr)(const arma::vec&,const arma::mat&,Nullable<arma::mat>,const arma::vec&,const arma::vec&,const arma::vec&,const Nullable<arma::vec>&,const arma::vec&,const arma::vec&)");
+        signatures.insert("arma::mat(*weibull_hess)(const arma::vec&,const arma::mat&,Nullable<arma::mat>,const arma::vec&,const arma::vec&,const arma::vec&,const Nullable<arma::vec>&,const arma::vec&,const arma::vec&)");
+        signatures.insert("void(*weibull_inplace)(double&,arma::mat&,arma::vec&,arma::mat&,const arma::vec&,const arma::mat&,const Nullable<arma::mat>&,const arma::vec&,const arma::vec&,const arma::vec&,const Nullable<arma::vec>&,const arma::vec&,const arma::vec&)");
+        signatures.insert("arma::vec(*weibull_ll)(const arma::vec&,const arma::mat&,Nullable<arma::mat>,const arma::vec&,const arma::vec&,const arma::vec&,const Nullable<arma::vec>&,const arma::vec&,const arma::vec&)");
+        signatures.insert("List(*weibull_max_nr)(const int,const arma::mat&,const Nullable<arma::mat>,const arma::vec&,const arma::vec&,const arma::vec&,const Nullable<arma::vec>,const arma::vec&,const arma::vec&,const arma::vec&,const double,const double)");
+    }
+    return signatures.find(sig) != signatures.end();
+}
+
+// registerCCallable (register entry points for exported C++ functions)
+RcppExport SEXP _rstreg_RcppExport_registerCCallable() { 
+    R_RegisterCCallable("rstreg", "_rstreg_weibull_gr", (DL_FUNC)_rstreg_weibull_gr_try);
+    R_RegisterCCallable("rstreg", "_rstreg_weibull_hess", (DL_FUNC)_rstreg_weibull_hess_try);
+    R_RegisterCCallable("rstreg", "_rstreg_weibull_inplace", (DL_FUNC)_rstreg_weibull_inplace_try);
+    R_RegisterCCallable("rstreg", "_rstreg_weibull_ll", (DL_FUNC)_rstreg_weibull_ll_try);
+    R_RegisterCCallable("rstreg", "_rstreg_weibull_max_nr", (DL_FUNC)_rstreg_weibull_max_nr_try);
+    R_RegisterCCallable("rstreg", "_rstreg_RcppExport_validate", (DL_FUNC)_rstreg_RcppExport_validate);
+    return R_NilValue;
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_rstreg_weibull", (DL_FUNC) &_rstreg_weibull, 12},
+    {"_rstreg_weibull_optimize", (DL_FUNC) &_rstreg_weibull_optimize, 12},
     {"_rstreg_weibull_gr", (DL_FUNC) &_rstreg_weibull_gr, 9},
     {"_rstreg_weibull_hess", (DL_FUNC) &_rstreg_weibull_hess, 9},
+    {"_rstreg_weibull_inplace", (DL_FUNC) &_rstreg_weibull_inplace, 13},
     {"_rstreg_weibull_ll", (DL_FUNC) &_rstreg_weibull_ll, 9},
+    {"_rstreg_weibull_max_nr", (DL_FUNC) &_rstreg_weibull_max_nr, 12},
+    {"_rstreg_RcppExport_registerCCallable", (DL_FUNC) &_rstreg_RcppExport_registerCCallable, 0},
     {NULL, NULL, 0}
 };
 

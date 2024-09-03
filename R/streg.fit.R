@@ -56,9 +56,12 @@ streg.fit <- function(x, z, y, weights, offset, init, pfixed, control, dist, max
   }
 #  fit <- maxLik(weibull_ll, grad=weibull_gr, hess=weibull_hess, start=init,
 #                X=x, Z=z, tt=exit, tt0=enter, d=status, pfixed=pfixed, w=weights, offset=offset, method=max.method, control=control)
-  fit <- weibull(X=x, Z=z, tt=exit, tt0=enter, d=status,
-                 pfixed=pfixed, w=weights, offset=offset,
-                 method=max.method, control=control, print=0, init_theta=init)
+  if (max.method=="NR")
+    fit <- weibull_max_nr(maxiter=100, X=x, Z=z, tt=exit, tt0=enter, d=status,
+              pfixed=pfixed, wt=weights, offset=offset, theta=init, eps=1e-12, tol=1e-12)
+  else fit <- weibull_optimize(X=x, Z=z, tt=exit, tt0=enter, d=status,
+                               pfixed=pfixed, w=weights, offset=offset,
+                               method=max.method, control=control, print=0, init_theta=init)
   fit$par <- as.vector(fit$par)
   names(fit$par) <- names(init)
   fit$linear.predictors <- c(x %*% fit$par[colnames(x)] + offset)
