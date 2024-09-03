@@ -12,6 +12,8 @@
 #'
 #' @param formula a formula expression. The response should be a survival object as returned by the
 #' [survival::Surv()] function.
+#' @param ancillary_formula an optional auxiliary formula to model the first ancillary
+#' parameter of the distribution (e.g., the log of the Weibull parameter p)
 #' @param data a data frame in which to interpret the variables named in the \code{formula},
 #' \code{weights}, or \code{subset} arguments.
 #' @param weights optional vector of observation weights
@@ -56,7 +58,7 @@
 #'
 #' @export
 #'
-streg <- function(formula, data, weights, subset, na.action, dist = "weibull", pfixed=NULL,
+streg <- function(formula, ancillary_formula=NULL, data, weights, subset, na.action, dist = "weibull", pfixed=NULL,
                   init = NULL, init.search=TRUE, max.method="NR", control=NULL, model=TRUE,
                   x=TRUE, z=TRUE, y = TRUE, robust = FALSE, cluster, metric="PH",
                   ...)
@@ -111,6 +113,8 @@ streg <- function(formula, data, weights, subset, na.action, dist = "weibull", p
   strats <- attr(Terms, "specials")$strata
   keepz <- NULL
   if (length(strats)) {
+    if (!is.null(ancillary_formula))
+      stop("cannot provide both an ancillary formula and strata() in the main formula")
     temp <- untangle.specials(Terms, "strata", 1)
     keepz <- temp$terms
     if (length(temp$vars) == 1)
@@ -122,7 +126,13 @@ streg <- function(formula, data, weights, subset, na.action, dist = "weibull", p
   else {
     nstrata <- 1
     strata <- 0
+    if (!is.null(ancillary_formula)) {
+      ancTerms <- if (missing(data))
+        terms(ancillary_formula, specials = ss)
+      else terms(ancillary_formula, specials = ss, data = data)
+    }
   }
+
 
   X <- model.matrix(Terms, m)
   xlevels <- .getXlevels(Terms, m)
@@ -134,6 +144,9 @@ streg <- function(formula, data, weights, subset, na.action, dist = "weibull", p
   if (nstrata>1) {
     zTerms <- Terms[keepz]
     attr(zTerms, "intercept") <- attr(Terms, "intercept")
+  }
+  else if (!is.null(ancillary_formula)) {
+    zTerms <- ancTerms
   }
   else {
     zTerms <- Terms[0]
@@ -173,13 +186,17 @@ streg <- function(formula, data, weights, subset, na.action, dist = "weibull", p
 
   ## fit models to obtain initial values
   if (init.search) {
+    init <- rep(NA, nvar+ ifelse(!is.null(nvarZ),nvarZ, 0))
+    init_nm <- colnames(X)
+    if (!is.null(nvarZ))
+        init_nm <- c(init_nm, paste0("(log_p)", colnames(Z)))
+    names(init) <- init_nm
     if (metric=="PH") {
       coxcall <- Call[!is.na(match(names(Call), c("", "formula","data", "weights", "cluster")))]
       coxcall <- coxcall[unlist(lapply(coxcall, function(x) !is.null(x)))]
       coxcall[[1]] <- quote(coxph)
       cinit <- suppressWarnings(eval(coxcall))
       cinit <- coef(cinit)
-      init <- cinit
       if (is.null(pfixed)) {
         if (is.null(weights))
             pinit <- -coef(lm.fit(Z[exactsurv, ,drop=FALSE],
@@ -189,7 +206,7 @@ streg <- function(formula, data, weights, subset, na.action, dist = "weibull", p
           pinit <- -coef(lm.wfit(Z[exactsurv, ,drop=FALSE],
                                  log(Y[exactsurv, ncol(Y)-1]),
                                  w=weights[exactsurv], offset=offset[exactsurv]))
-        pinit <- c(pinit, rep(0, length(pinit)))
+        #pinit <- c(pinit, rep(0, length(pinit)))
         stinit <- streg.fit(Z, Z, Y, weights, offset, init=pinit, pfixed,
                             max.method=max.method, control=control, dist=dist,
                             ...)
@@ -202,7 +219,13 @@ streg <- function(formula, data, weights, subset, na.action, dist = "weibull", p
                             ...)
       }
       stinit <- stinit$par
-      init <- c(init, stinit)[c(names(stinit[1]), names(cinit), names(stinit)[-1])]
+      ## where there are initial values from streg.fit, take those -- i.e., only
+      ## use the cox fit for time-invariant log-HR parameters
+      init <- stinit
+      init[names(stinit)] <- stinit[names(stinit)]
+      init[names(cinit)] <- cinit[names(cinit)]
+      init[names(cinit)][is.na(init[names(cinit)])] <- cinit[is.na(init[names(cinit)])]
+      init <- init[init_nm]
     }
   }
 
