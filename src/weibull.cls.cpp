@@ -11,7 +11,7 @@ using namespace roptim;
 using namespace Rcpp;
 using namespace arma;
 
-class Weibull : public Functor {
+class Weibull_optimize : public Functor {
 public:
   arma::mat X;
   Nullable<arma::mat> Z;
@@ -25,10 +25,10 @@ public:
   bool p_is_fixed;
 
   // constructor
-  Weibull(const arma::mat& X, Nullable<arma::mat> Z,
-          const arma::vec& tt0, const arma::vec& tt, const arma::vec& d,
-          const Nullable<arma::vec>& pfixed,
-          const arma::vec& w, const arma::vec & offset)
+  Weibull_optimize(const arma::mat& X, Nullable<arma::mat> Z,
+                   const arma::vec& tt0, const arma::vec& tt, const arma::vec& d,
+                   const Nullable<arma::vec>& pfixed,
+                   const arma::vec& w, const arma::vec & offset)
     : X(X), Z(Z), tt0(tt0), tt(tt), d(d), p_is_fixed(pfixed.isNotNull()),
       w(w), offset(offset) {
     if (p_is_fixed) {
@@ -258,14 +258,14 @@ public:
 };
 
 // [[Rcpp::export]]
-Rcpp::List weibull(const arma::mat& X, Nullable<arma::mat> Z,
-                  const arma::vec& tt0, const arma::vec& tt, const arma::vec& d,
-                  const Nullable<arma::vec>& pfixed,
-                  const arma::vec& w, const arma::vec & offset, bool print=TRUE,
-                  const arma::vec init_theta=arma::vec(), const Rcpp::String method="BFGS",
-                  const Nullable<Rcpp::List>& control=NULL) {
-  Weibull ll(X, Z, tt0, tt, d, pfixed, w, offset);
-  Roptim<Weibull> opt(method);
+Rcpp::List weibull_optimize(const arma::mat& X, Nullable<arma::mat> Z,
+                            const arma::vec& tt0, const arma::vec& tt, const arma::vec& d,
+                            const Nullable<arma::vec>& pfixed,
+                            const arma::vec& w, const arma::vec & offset, bool print=true,
+                            const arma::vec init_theta=arma::vec(), const Rcpp::String method="BFGS",
+                            const Nullable<Rcpp::List>& control=R_NilValue) {
+  Weibull_optimize ll(X, Z, tt0, tt, d, pfixed, w, offset);
+  Roptim<Weibull_optimize> opt(method);
 
   // default control options
   opt.control.fnscale = -1;

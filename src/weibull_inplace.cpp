@@ -6,9 +6,10 @@ using namespace arma;
 // [[Rcpp::depends(RcppArmadillo)]]
 // [[Rcpp::interfaces(r, cpp)]]
 // [[Rcpp::export]]
-arma::mat weibull_hess(const arma::vec& theta, const arma::mat& X, Nullable<arma::mat> Z,
-                 const arma::vec& tt0, const arma::vec& tt, const arma::vec& d,
-                 const Nullable<arma::vec>& pfixed, const arma::vec& w, const arma::vec & offset) {
+void weibull_inplace(double &llval, arma::mat &grObsval, arma::vec &grval, arma::mat &hessval,
+                     const arma::vec& theta, const arma::mat& X, const Nullable<arma::mat> &Z,
+                     const arma::vec& tt0, const arma::vec& tt, const arma::vec& d,
+                     const Nullable<arma::vec>& pfixed, const arma::vec& w, const arma::vec & offset) {
 
   int n = d.n_elem;       // Number of observations
   int pX = X.n_cols;      // Number of parameters for X
@@ -25,7 +26,7 @@ arma::mat weibull_hess(const arma::vec& theta, const arma::mat& X, Nullable<arma
 
 
   // Compute lambda and log_lambda
-  vec log_lambda = X * beta;
+  vec log_lambda = X * beta + offset;
   vec lambda = exp(log_lambda);
 
   // Compute log_p and p
@@ -46,9 +47,53 @@ arma::mat weibull_hess(const arma::vec& theta, const arma::mat& X, Nullable<arma
   for (int i=0; i<n; ++i)
     log_tt0[i] = tt0[i]>0 ? log(tt0[i]) : 0;
 
+  // Compute log-likelihood
+  vec ll = d % (log_lambda + log_p + (p - 1) % log_tt) - lambda % exp(p % log_tt);
+  for (int i = 0; i < n; ++i) {
+    if (tt0[i] > 0) {
+      ll[i] += lambda[i] * exp(p[i] * log_tt0[i]);
+    }
+    ll[i] *= w[i];
+  }
+  double llsum = sum(ll);
+
+  // Gradient computation
+  mat gr(n, theta.n_elem, fill::zeros);
+
+  // Gradient for beta terms
+  for (int i = 0; i < n; ++i) {
+    double lambda_i = lambda[i];
+    double tt0_i = tt0[i];
+    double log_tt_i = log_tt[i];
+    double log_tt0_i = log_tt0[i];
+    double w_i = w[i];
+    double p_i = p[i];
+    double d_i = d[i];
+    vec X_i = X.row(i).t();
+    double term1 = tt0_i > 0 ? exp(p_i*log_tt0_i) : 0;
+    double tmpval_b = w_i * (d_i + lambda_i * (term1 - exp(p_i*log_tt_i)));
+    vec tmpvec_b(X_i.n_elem, fill::zeros);
+    for(int j=0; j<tmpvec_b.n_elem; ++j)
+      tmpvec_b[j] += tmpval_b;
+
+    gr.row(i).head(X_i.n_elem) = (X_i % tmpvec_b).t();
+
+    // gradient for gamma terms
+    if (pZ > 0) {
+      vec Z_i = as<mat>(Z).row(i).t();
+      double tmpval_p = w_i * (d_i*(1 + p_i*log_tt_i) +
+                               lambda_i*p_i*(exp(p_i*log_tt0_i)*log_tt0_i - exp(p_i*log_tt_i)*log_tt_i));
+      vec tmpvec_p(Z_i.n_elem, fill::zeros);
+      for(int j=0; j<tmpvec_p.n_elem; ++j)
+        tmpvec_p[j] += tmpval_p;
+
+      gr.row(i).tail(pZ) = (Z_i % tmpvec_p).t();
+    }
+  }
+  arma::vec grsum = sum(gr).t();
+
   // Hessian computation
   mat H(theta.n_elem, theta.n_elem, fill::zeros);
-
   // Hessian for beta terms
   mat Hbb = zeros<mat>(pX, pX);
   for (int i = 0; i < n; ++i) {
@@ -90,8 +135,8 @@ arma::mat weibull_hess(const arma::vec& theta, const arma::mat& X, Nullable<arma
       vec X_i = X.row(i).t();
       vec Z_i = as<mat>(Z).row(i).t();
 
-    double termt0 = tt0_i>0 ? exp(p_i*log_tt0_i + log_lambda_i) : 0;
-    double termt = exp(p_i*log_tt_i + log_lambda_i);
+      double termt0 = tt0_i>0 ? exp(p_i*log_tt0_i + log_lambda_i) : 0;
+      double termt = exp(p_i*log_tt_i + log_lambda_i);
       double tmpval_pb = w_i * p_i * (termt0*log_tt0_i - termt*log_tt_i);
       vec tmpvec_pb(X_i.n_elem, fill::zeros);
       for(int j=0; j<tmpvec_pb.n_elem; ++j)
@@ -115,6 +160,8 @@ arma::mat weibull_hess(const arma::vec& theta, const arma::mat& X, Nullable<arma
     H.submat(pX, 0, theta.n_elem - 1, pX - 1) = Hpb.t();
     H.submat(pX, pX, theta.n_elem - 1, theta.n_elem - 1) = Hpp;
   }
-  return H;
+  llval = llsum;
+  grval = grsum;
+  grObsval = gr;
+  hessval = H;
 }
-

@@ -23,7 +23,7 @@
 #' fit an exponential survival model.
 #' @param init optional vector of initial values for the parameters.
 #' @param init.search if TRUE fit preliminary models to obtain initial values for the parameters.
-#' @param max.method optimisation method passed to [roptim] (defaults to BFGS)
+#' @param max.method optimisation method. Either default "NR", or an alternative method passed to [roptim]
 #' @param control list of control values passed to [roptim]
 #' @param model if TRUE returns the model frame
 #' @param x if TRUE returns the x matrix
@@ -57,7 +57,7 @@
 #' @export
 #'
 streg <- function(formula, data, weights, subset, na.action, dist = "weibull", pfixed=NULL,
-                  init = NULL, init.search=TRUE, max.method="BFGS", control=NULL, model=TRUE,
+                  init = NULL, init.search=TRUE, max.method="NR", control=NULL, model=TRUE,
                   x=TRUE, z=TRUE, y = TRUE, robust = FALSE, cluster, metric="PH",
                   ...)
 {
@@ -188,7 +188,7 @@ streg <- function(formula, data, weights, subset, na.action, dist = "weibull", p
         else
           pinit <- -coef(lm.wfit(Z[exactsurv, ,drop=FALSE],
                                  log(Y[exactsurv, ncol(Y)-1]),
-                                 w=weights[exactsurv], offset=offset))
+                                 w=weights[exactsurv], offset=offset[exactsurv]))
         pinit <- c(pinit, rep(0, length(pinit)))
         stinit <- streg.fit(Z, Z, Y, weights, offset, init=pinit, pfixed,
                             max.method=max.method, control=control, dist=dist,
