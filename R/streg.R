@@ -13,7 +13,7 @@
 #' @param formula a formula expression. The response should be a survival object as returned by the
 #' [survival::Surv()] function.
 #' @param ancillary_formula an optional auxiliary formula to model the first ancillary
-#' parameter of the distribution (e.g., the log of the Weibull parameter p)
+#' parameter of the distribution (e.g., the log of the Weibull parameter p).
 #' @param data a data frame in which to interpret the variables named in the \code{formula},
 #' \code{weights}, or \code{subset} arguments.
 #' @param weights optional vector of observation weights
@@ -67,9 +67,17 @@ streg <- function(formula, ancillary_formula=NULL, data, weights, subset, na.act
   if (missing(formula))
     stop("a formula argument is required")
   ss <- c("cluster", "offset")
-  Terms <- if (missing(data))
-    terms(formula, specials = ss)
-  else terms(formula, specials = ss, data = data)
+  if (!is.null(ancillary_formula))
+    fullf <- merge.formula(formula, ancillary_formula)
+  else fullf <- formula
+  if (missing(data)) {
+    Terms <- terms(formula, specials=ss)
+    fullTerms <- terms(fullf, specials=ss)
+  }
+  else {
+    Terms <- terms(formula, specials=ss, data=data)
+    fullTerms <- terms(fullf, specials=ss, data=data)
+  }
   tcl <- attr(Terms, "specials")$cluster
   if (length(tcl) > 1)
     stop("a formula cannot have multiple cluster terms")
@@ -93,16 +101,21 @@ streg <- function(formula, ancillary_formula=NULL, data, weights, subset, na.act
   temp[[1L]] <- quote(stats::model.frame)
   special <- c("strata")
   temp$formula <- if (missing(data))
+    terms(fullf, special)
+  else terms(fullf, special, data = data)
+  mfull <- eval(temp, parent.frame())
+  fullTerms <- attr(mfull, "terms")
+  temp$formula <- if (missing(data))
     terms(formula, special)
   else terms(formula, special, data = data)
   m <- eval(temp, parent.frame())
   Terms <- attr(m, "terms")
-  weights <- model.extract(m, "weights")
-  Y <- model.extract(m, "response")
+  weights <- model.extract(mfull, "weights")
+  Y <- model.extract(mfull, "response")
   if (!inherits(Y, "Surv"))
     stop("Response must be a survival object")
   type <- attr(Y, "type")
-  cluster <- model.extract(m, "cluster")
+  cluster <- model.extract(mfull, "cluster")
   if (length(cluster)) {
     if (missing(robust))
       robust <- TRUE
@@ -115,11 +128,11 @@ streg <- function(formula, ancillary_formula=NULL, data, weights, subset, na.act
   if (length(strats)) {
     if (!is.null(ancillary_formula))
       stop("cannot provide both an ancillary formula and strata() in the main formula")
-    temp <- untangle.specials(Terms, "strata", 1)
-    keepz <- temp$terms
-    if (length(temp$vars) == 1)
-      strata.keep <- m[[temp$vars]]
-    else strata.keep <- strata(m[, temp$vars], shortlabel = TRUE)
+    tempstrat <- untangle.specials(Terms, "strata", 1)
+    keepz <- tempstrat$terms
+    if (length(tempstrat$vars) == 1)
+      strata.keep <- mfull[[tempstrat$vars]]
+    else strata.keep <- strata(mfull[, tempstrat$vars], shortlabel = TRUE)
     strata <- as.numeric(strata.keep)
     nstrata <- max(strata)
   }
@@ -127,15 +140,17 @@ streg <- function(formula, ancillary_formula=NULL, data, weights, subset, na.act
     nstrata <- 1
     strata <- 0
     if (!is.null(ancillary_formula)) {
-      ancTerms <- if (missing(data))
+      temp$formula <- if (missing(data))
         terms(ancillary_formula, specials = ss)
       else terms(ancillary_formula, specials = ss, data = data)
+      ancm <- eval(temp, mfull)
+      ancTerms <- attr(ancm, "terms")
     }
   }
 
 
-  X <- model.matrix(Terms, m)
-  xlevels <- .getXlevels(Terms, m)
+  X <- model.matrix(Terms, mfull)
+  xlevels <- .getXlevels(Terms, mfull)
   contr.save <- attr(X, "contrasts")
   if (!all(is.finite(X)))
     stop("data contains an infinite predictor")
@@ -155,8 +170,13 @@ streg <- function(formula, ancillary_formula=NULL, data, weights, subset, na.act
   if (nstrata>1 && !is.null(pfixed))
     stop("cannot provide a fixed Weibull paramater pfixed in conjunction with strata()")
   if (is.null(pfixed)) {
-    Z <- model.matrix(zTerms, m)
-    zlevels <- .getXlevels(zTerms, m)
+    if (!is.null(ancillary_formula)) {
+      Z <- model.matrix(zTerms, mfull)
+      zlevels <- .getXlevels(zTerms, mfull)
+    } else {
+      Z <- model.matrix(zTerms, mfull)
+      zlevels <- .getXlevels(zTerms, mfull)
+    }
     contr.save.Z <- attr(Z, "contrasts")
     if (!all(is.finite(Z)))
       stop("data contains an infinite predictor")
@@ -169,7 +189,7 @@ streg <- function(formula, ancillary_formula=NULL, data, weights, subset, na.act
     contr.save.Z <- NULL
   }
 
-  offset <- model.offset(m)
+  offset <- model.offset(mfull)
   if (length(offset) == 0 || all(offset == 0))
     offset <- rep(0, n)
   if (is.character(dist)) {
@@ -206,7 +226,9 @@ streg <- function(formula, ancillary_formula=NULL, data, weights, subset, na.act
           pinit <- -coef(lm.wfit(Z[exactsurv, ,drop=FALSE],
                                  log(Y[exactsurv, ncol(Y)-1]),
                                  w=weights[exactsurv], offset=offset[exactsurv]))
-        #pinit <- c(pinit, rep(0, length(pinit)))
+        if (length(pinit) != 2*ncol(Z)) {
+          pinit <- c(pinit, rep(0, length(pinit)))
+        }
         stinit <- streg.fit(Z, Z, Y, weights, offset, init=pinit, pfixed,
                             max.method=max.method, control=control, dist=dist,
                             ...)
@@ -214,17 +236,21 @@ streg <- function(formula, ancillary_formula=NULL, data, weights, subset, na.act
       else {
         pinit <- -mean(log(weights[exactsurv]*Y[exactsurv, ncol(Y)-1]/sum(weights[exactsurv])))
         pinit <- c(pinit, rep(0, length(pinit)))
-        stinit <- streg.fit(model.matrix(zTerms, m),Z,Y,weights, offset, init=NULL, pfixed,
+        stinit <- streg.fit(model.matrix(zTerms, mfull),Z,Y,weights, offset, init=NULL, pfixed,
                             max.method=max.method, control=control, dist=dist,
                             ...)
       }
       stinit <- stinit$par
       ## where there are initial values from streg.fit, take those -- i.e., only
-      ## use the cox fit for time-invariant log-HR parameters
-      init <- stinit
+      ## use the cox fit for time-invariant, finite log-HR parameters
       init[names(stinit)] <- stinit[names(stinit)]
       init[names(cinit)] <- cinit[names(cinit)]
       init[names(cinit)][is.na(init[names(cinit)])] <- cinit[is.na(init[names(cinit)])]
+      ## sometimes coxph returns NA
+      if (any(is.na(init))) {
+        init[names(cinit)][is.na(init[names(cinit)])] <- stinit[is.na(init[names(cinit)])]
+        init[is.na(init)] <- 0
+      }
       init <- init[init_nm]
     }
   }
@@ -258,7 +284,7 @@ streg <- function(formula, ancillary_formula=NULL, data, weights, subset, na.act
     fit$dist <- dist
     fit$metric <- "PH"
     if (model)
-      fit$model <- m
+      fit$model <- mfull
     if (x)
       fit$x <- X
     if (z && !is.null(Z))
@@ -271,7 +297,7 @@ streg <- function(formula, ancillary_formula=NULL, data, weights, subset, na.act
     if (robust) {
       fit$naive.var <- fit$var
       if (!model)
-        fit$model <- m
+        fit$model <- mfull
       if (length(cluster))
         fit$var <- fit$naive.var%*%((max(cluster)/(max(cluster)-1))*crossprod(rowsum(fit$gradientObs, cluster)))%*%fit$naive.var
       else fit$var <- fit$naive.var%*%((n/(n-1))*crossprod(rowsum(fit$gradientObs)))%*%fit$naive.var
@@ -281,7 +307,7 @@ streg <- function(formula, ancillary_formula=NULL, data, weights, subset, na.act
     singular <- (diag(fit$var) == 0)[1:length(fit$coefficients)]
     if (any(singular))
       fit$coefficients[singular] <- NA
-    na.action <- attr(m, "na.action")
+    na.action <- attr(mfull, "na.action")
     if (length(na.action))
       fit$na.action <- na.action
     class(fit) <- c("streg", "survreg", class(fit))

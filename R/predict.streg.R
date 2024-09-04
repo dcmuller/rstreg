@@ -65,7 +65,7 @@ predict.streg <- function (object, newdata, type = c("lp", "linear", "xb", "hr",
   type <- match.arg(type)
   if (type == "linear" || type=="xb")
     type <- "lp"
-  if (!(type == "lp" || type=="hr") && nocons)
+  if (!(type == "lp" || type=="hr" || type=="log.hazard" || type=="hazard") && nocons)
     stop(paste0("nocons=TRUE is not a valid option for type = '", type,"'"))
   n <- nrow(object$gradientObs)
   Terms <- object$terms
@@ -83,7 +83,7 @@ predict.streg <- function (object, newdata, type = c("lp", "linear", "xb", "hr",
   fixedscale <- (nvar == ncol(object$var))
   vvb <- object$var[1:nvar, 1:nvar]
   vvfull <- object$var
-  coeffull <- object$estimate
+  coeffull <- object$par
   if (!fixedscale) {
     coefz <- coeffull[(length(coef)+1):length(coeffull)]
     vvz <- vvfull[(length(coef)+1):length(coeffull),(length(coef)+1):length(coeffull)]
@@ -225,10 +225,14 @@ predict.streg <- function (object, newdata, type = c("lp", "linear", "xb", "hr",
     }
   }
   else if (type=="log.hazard" || type=="hazard") {
+    if (nocons) {
+      x[, "(Intercept)"] <- 0
+      z[, "(Intercept)"] <- 0
+    }
     if (ncol(y)==2)
       tt <- y[, 1]
     else tt <- y[, 2]
-    xb <- drop(x %*% coef)
+    xb <- drop(x %*% coef) + as.numeric(nooffset)*offset
     lp <- drop(z %*% coefz)
     pred <- dd$lh(xb,lp,tt)
     if (se.fit) {

@@ -6,6 +6,7 @@
 \usage{
 streg(
   formula,
+  ancillary_formula = NULL,
   data,
   weights,
   subset,
@@ -14,7 +15,7 @@ streg(
   pfixed = NULL,
   init = NULL,
   init.search = TRUE,
-  max.method = "BFGS",
+  max.method = "NR",
   control = NULL,
   model = TRUE,
   x = TRUE,
@@ -29,6 +30,9 @@ streg(
 \arguments{
 \item{formula}{a formula expression. The response should be a survival object as returned by the
 \code{\link[survival:Surv]{survival::Surv()}} function.}
+
+\item{ancillary_formula}{an optional auxiliary formula to model the first ancillary
+parameter of the distribution (e.g., the log of the Weibull parameter p).}
 
 \item{data}{a data frame in which to interpret the variables named in the \code{formula},
 \code{weights}, or \code{subset} arguments.}
@@ -49,7 +53,7 @@ fit an exponential survival model.}
 
 \item{init.search}{if TRUE fit preliminary models to obtain initial values for the parameters.}
 
-\item{max.method}{optimisation method passed to \link{roptim} (defaults to BFGS)}
+\item{max.method}{optimisation method. Either default "NR", or an alternative method passed to \link{roptim}}
 
 \item{control}{list of control values passed to \link{roptim}}
 
