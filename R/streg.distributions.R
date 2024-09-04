@@ -1,7 +1,7 @@
 streg.distributions <- vector(mode="list")
 streg.distributions[["weibull"]] <- list(
   name="Weibull",
-  lh = function(xb, lp, tt) {xb + exp(lp)*log(tt) - log(tt)},
+  lh = function(xb, lp, tt) {xb + exp(lp)*log(tt)},
   dlh = function(x,z,lp,tt) {
     cbind(x,
           z*exp(lp)*log(tt))
