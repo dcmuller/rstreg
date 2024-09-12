@@ -6,6 +6,8 @@
 #' @param object result of a model fit using the \code{streg} function
 #' @param newdata data for prediction. If absent predictions are for observations
 #' used in the original fit.
+#' @param newdata2 optional data frame used as the reference for types
+#'  \code{"log.hr"} and \code{"hr"}.
 #' @param type the type of predicted value. \code{"lp"}, \code{"linear"}, and
 #' \code{"xb"} provide the linear predictor, and \code{"hr"} provides the antilog of
 #' the linear predictor. \code{"p"} and \code{"log.p"} provide the Weibull shape
@@ -44,16 +46,16 @@
 #' @author David C Muller
 #'
 #' @import survival
-#' @import maxLik
 #'
 #' @export
 
-predict.streg <- function (object, newdata, type = c("lp", "linear", "xb", "hr",
+predict.streg <- function (object, newdata, type = c("lp", "linear", "xb",
                                                      "log.p", "p",
                                                      "log.hazard", "hazard",
+                                                     "log.hr", "hr",
                                                      "log.cum.hazard", "cum.hazard",
                                                      "survival", "quantile", "uquantile", "terms"),
-                           nocons=FALSE, nooffset=FALSE,
+                           newdata2, nocons=FALSE, nooffset=FALSE,
                            se.fit = FALSE, ci.fit=FALSE, ci.level=0.95,
                            terms = NULL, perc = c(0.1, 0.5, 0.9), na.action = na.pass, ...)
 {
@@ -66,7 +68,7 @@ predict.streg <- function (object, newdata, type = c("lp", "linear", "xb", "hr",
   type <- match.arg(type)
   if (type == "linear" || type=="xb")
     type <- "lp"
-  if (!(type == "lp" || type=="hr") && nocons)
+  if (!(type == "lp" || type=="log.hazard" || type=="hazard") && nocons)
     stop(paste0("nocons=TRUE is not a valid option for type = '", type,"'"))
   n <- nrow(object$gradientObs)
   Terms <- object$terms
@@ -84,7 +86,7 @@ predict.streg <- function (object, newdata, type = c("lp", "linear", "xb", "hr",
   fixedscale <- (nvar == ncol(object$var))
   vvb <- object$var[1:nvar, 1:nvar]
   vvfull <- object$var
-  coeffull <- object$estimate
+  coeffull <- object$par
   if (!fixedscale) {
     coefz <- coeffull[(length(coef)+1):length(coeffull)]
     vvz <- vvfull[(length(coef)+1):length(coeffull),(length(coef)+1):length(coeffull)]
@@ -97,6 +99,7 @@ predict.streg <- function (object, newdata, type = c("lp", "linear", "xb", "hr",
     need.x <- need.z <- TRUE
   else need.x <- need.z <- FALSE
   if (type=="log.hazard" || type=="hazard" ||
+      type=="log.hr" || type=="hr" ||
       type=="log.cum.hazard" || type=="cum.hazard" || type=="survival")
     need.y <- TRUE
   else need.y <- FALSE
@@ -106,6 +109,12 @@ predict.streg <- function (object, newdata, type = c("lp", "linear", "xb", "hr",
     na.action.used <- attr(newframeX, "na.action")
     newframeZ <- stats::model.frame(zTerms, data=newdata,
                                     na.action = na.action, xlev = object$zlevels)
+    if (!missing(newdata2)) {
+      newframeX2 <- stats::model.frame(Terms, data = newdata2,
+                                       na.action = na.action, xlev = object$xlevels)
+      newframeZ2 <- stats::model.frame(zTerms, data=newdata2,
+                                       na.action = na.action, xlev = object$zlevels)
+    }
     if (need.y) {
       if (!any(lapply(newdata, class)=="Surv"))
         stop(paste0("prediction type '", type, "' requires one variable in newdata to be a valid Surv object"))
@@ -150,6 +159,10 @@ predict.streg <- function (object, newdata, type = c("lp", "linear", "xb", "hr",
       strata <- match(newstrat, levels(strata.keep))
       x <- model.matrix(object, newframeX)
       z <- model.matrix(zTerms, newframeZ)
+      if (!missing(newdata2)) {
+        x2 <- model.matrix(object, newframeX2)
+        z2 <- model.matrix(zTerms, newframeZ2)
+      }
       offset <- model.offset(newframeX)
       if (is.null(offset))
         offset <- 0
@@ -175,6 +188,10 @@ predict.streg <- function (object, newdata, type = c("lp", "linear", "xb", "hr",
     else {
       x <- model.matrix(object, newframeX)
       z <- model.matrix(zTerms, newframeZ)
+      if (!missing(newdata2)) {
+        x2 <- model.matrix(object, newframeX2)
+        z2 <- model.matrix(zTerms, newframeZ2)
+      }
       if (need.y)
         y <- newY
       strata <- rep(1L, nrow(x))
@@ -191,7 +208,7 @@ predict.streg <- function (object, newdata, type = c("lp", "linear", "xb", "hr",
 
   if (!is.null(dd$dist))
     dd <- streg.distributions[[dd$dist]]
-  if ((type == "lp" || type == "hr")) {
+  if (type == "lp") {
     if (nocons)
       x[, "(Intercept)"] <- 0
     pred <- drop(x %*% coef) + as.numeric(nooffset)*offset
@@ -200,13 +217,6 @@ predict.streg <- function (object, newdata, type = c("lp", "linear", "xb", "hr",
     if (ci.fit) {
       ci <- pred + outer(se, ci.crit)
       colnames(ci) <- c(paste0(c("l","u"),100*ci.level))
-    }
-    if (type == "hr") {
-      pred <- exp(pred)
-      if (se.fit)
-        se <- se*pred
-    if (ci.fit)
-      ci <- exp(ci)
     }
   }
   else if (type == "log.p" || type == "p") {
@@ -226,10 +236,14 @@ predict.streg <- function (object, newdata, type = c("lp", "linear", "xb", "hr",
     }
   }
   else if (type=="log.hazard" || type=="hazard") {
+    if (nocons) {
+      x[, "(Intercept)"] <- 0
+      z[, "(Intercept)"] <- 0
+    }
     if (ncol(y)==2)
       tt <- y[, 1]
     else tt <- y[, 2]
-    xb <- drop(x %*% coef)
+    xb <- drop(x %*% coef) + as.numeric(nooffset)*offset
     lp <- drop(z %*% coefz)
     pred <- dd$lh(xb,lp,tt)
     if (se.fit) {
@@ -244,6 +258,36 @@ predict.streg <- function (object, newdata, type = c("lp", "linear", "xb", "hr",
       pred <- exp(pred)
       if (se.fit)
         se <- se*pred
+      if (ci.fit) {
+        ci <- exp(ci)
+        colnames(ci) <- c(paste0(c("l","u"),100*ci.level))
+      }
+    }
+  }
+  else if (type=="log.hr" || type=="hr") {
+    if (nocons) {
+    }
+    if (ncol(y)==2)
+      tt <- y[, 1]
+    else tt <- y[, 2]
+    xb <- drop(x %*% coef) + as.numeric(nooffset)*offset
+    xb2 <- drop(x2 %*% coef) + as.numeric(nooffset)*offset
+    lp <- drop(z %*% coefz)
+    lp2 <- drop(z2 %*% coefz)
+    pred <- dd$lhr(xb,lp,xb2,lp2,tt)
+    if (se.fit) {
+      gr <- dd$dlhr(x, z, x2, z2, lp, lp2, tt)
+      se <- sqrt(diag(gr %*% vvfull %*% t(gr)))
+    }
+    if (ci.fit) {
+      ci <- pred + outer(se, ci.crit)
+      colnames(ci) <- c(paste0(c("l","u"),100*ci.level))
+    }
+    if (type=="hr") {
+      pred <- exp(pred)
+      if (se.fit)
+        se <- se * pred
+
       if (ci.fit) {
         ci <- exp(ci)
         colnames(ci) <- c(paste0(c("l","u"),100*ci.level))

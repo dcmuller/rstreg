@@ -10,7 +10,7 @@ S3method(print,summary.streg)
 S3method(summary,streg)
 export(streg)
 export(streg.fit)
-import(maxLik)
+import(roptim)
 import(survival)
 importFrom("stats", ".getXlevels", "coef", "delete.response",
                "model.extract", "model.matrix", "model.offset", "na.pass",

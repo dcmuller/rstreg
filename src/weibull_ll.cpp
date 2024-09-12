@@ -1,8 +1,10 @@
 #include <RcppArmadillo.h>
+#include "streg.h"
 using namespace Rcpp;
 using namespace arma;
 
 // [[Rcpp::depends(RcppArmadillo)]]
+// [[Rcpp::interfaces(r, cpp)]]
 // [[Rcpp::export]]
 arma::vec weibull_ll(const arma::vec& theta, const arma::mat& X, Nullable<arma::mat> Z,
                           const arma::vec& tt0, const arma::vec& tt, const arma::vec& d,

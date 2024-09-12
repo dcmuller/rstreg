@@ -6,6 +6,7 @@
 \usage{
 streg(
   formula,
+  ancillary_formula = NULL,
   data,
   weights,
   subset,
@@ -30,6 +31,9 @@ streg(
 \item{formula}{a formula expression. The response should be a survival object as returned by the
 \code{\link[survival:Surv]{survival::Surv()}} function.}
 
+\item{ancillary_formula}{an optional auxiliary formula to model the first ancillary
+parameter of the distribution (e.g., the log of the Weibull parameter p).}
+
 \item{data}{a data frame in which to interpret the variables named in the \code{formula},
 \code{weights}, or \code{subset} arguments.}
 
@@ -49,9 +53,9 @@ fit an exponential survival model.}
 
 \item{init.search}{if TRUE fit preliminary models to obtain initial values for the parameters.}
 
-\item{max.method}{optimisation method passed to \code{\link[maxLik:maxLik]{maxLik::maxLik()}}}
+\item{max.method}{optimisation method. Either default "NR", or an alternative method passed to \link{roptim}}
 
-\item{control}{list of control values passed to \code{\link[maxLik:maxLik]{maxLik::maxLik()}}}
+\item{control}{list of control values passed to \link{roptim}}
 
 \item{model}{if TRUE returns the model frame}
 
@@ -67,12 +71,12 @@ robust variance-covariance matrix will be adjusted for the number of clusters ra
 the number of observations.}
 
 \item{cluster}{optional variable that identifies groups of observations that is used in the
-calculation of the robust variance-covariance}
+calculation of the robust variance-cvariance}
 
 \item{metric}{proportional hazards \code{"PH"} or accelerated failure time \code{"AFT"} metric.
 Currently only \code{"PH"} is available.}
 
-\item{...}{other arguments passed to \code{\link[maxLik:maxLik]{maxLik::maxLik()}}}
+\item{...}{other arguments passed to \link{roptim}}
 }
 \value{
 an object of class \code{streg} is returned.

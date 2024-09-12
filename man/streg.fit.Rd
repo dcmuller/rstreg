@@ -33,11 +33,11 @@ streg.fit(
 
 \item{pfixed}{value to fix auxiliary parameter p at.}
 
-\item{control}{control list passed to \code{\link[maxLik:maxLik]{maxLik::maxLik()}}}
+\item{control}{control list passed to \link{roptim}}
 
 \item{dist}{survival distribution}
 
-\item{max.method}{maximisation method passed to \code{\link[maxLik:maxLik]{maxLik::maxLik()}}}
+\item{max.method}{maximisation method passed to \link{roptim}}
 
 \item{...}{for future methods}
 }

@@ -6,8 +6,8 @@ summary.streg <- function(object, ...)
     return(invisible(object))
   }
 
-  coef <- object$estimate
-  cname <- names(object$estimate)
+  coef <- object$par
+  cname <- names(object$par)
 
   n <- length(object$linear.predictors)
   p <- sum(!is.na(coef))
@@ -41,7 +41,7 @@ summary.streg <- function(object, ...)
     colnames(eform.table)[1] <- "Haz.Ratio"
   }
 
-  x <- object[match(c('call', 'df', 'maximum', 'iterations', 'na.action',
+  x <- object[match(c('call', 'df', 'maximum', 'na.action',
                       'coefficients', 'estimates', 'var', 'pfixed'),
                     names(object), nomatch=0)]
   x <- c(x, list(table=table, eform.table=eform.table, n=n),

@@ -12,6 +12,8 @@
 #'
 #' @param formula a formula expression. The response should be a survival object as returned by the
 #' [survival::Surv()] function.
+#' @param ancillary_formula an optional auxiliary formula to model the first ancillary
+#' parameter of the distribution (e.g., the log of the Weibull parameter p).
 #' @param data a data frame in which to interpret the variables named in the \code{formula},
 #' \code{weights}, or \code{subset} arguments.
 #' @param weights optional vector of observation weights
@@ -23,8 +25,8 @@
 #' fit an exponential survival model.
 #' @param init optional vector of initial values for the parameters.
 #' @param init.search if TRUE fit preliminary models to obtain initial values for the parameters.
-#' @param max.method optimisation method passed to [maxLik::maxLik()]
-#' @param control list of control values passed to [maxLik::maxLik()]
+#' @param max.method optimisation method. Either default "NR", or an alternative method passed to [roptim]
+#' @param control list of control values passed to [roptim]
 #' @param model if TRUE returns the model frame
 #' @param x if TRUE returns the x matrix
 #' @param z if TRUE returns the z matrix (predictor matrix for the Weibull parameter p)
@@ -34,10 +36,10 @@
 #' robust variance-covariance matrix will be adjusted for the number of clusters rather than
 #' the number of observations.
 #' @param cluster optional variable that identifies groups of observations that is used in the
-#' calculation of the robust variance-covariance
+#' calculation of the robust variance-cvariance
 #' @param metric proportional hazards \code{"PH"} or accelerated failure time \code{"AFT"} metric.
 #' Currently only \code{"PH"} is available.
-#' @param ... other arguments passed to [maxLik::maxLik()]
+#' @param ... other arguments passed to [roptim]
 #'
 #' @details
 #' Currently fits proportional hazards model of the form \eqn{h(\mathbf{t})=h_0(\mathbf{t})\exp(g(\mathbf{X}))}.
@@ -56,7 +58,7 @@
 #'
 #' @export
 #'
-streg <- function(formula, data, weights, subset, na.action, dist = "weibull", pfixed=NULL,
+streg <- function(formula, ancillary_formula=NULL, data, weights, subset, na.action, dist = "weibull", pfixed=NULL,
                   init = NULL, init.search=TRUE, max.method="NR", control=NULL, model=TRUE,
                   x=TRUE, z=TRUE, y = TRUE, robust = FALSE, cluster, metric="PH",
                   ...)
@@ -65,9 +67,17 @@ streg <- function(formula, data, weights, subset, na.action, dist = "weibull", p
   if (missing(formula))
     stop("a formula argument is required")
   ss <- c("cluster", "offset")
-  Terms <- if (missing(data))
-    terms(formula, specials = ss)
-  else terms(formula, specials = ss, data = data)
+  if (!is.null(ancillary_formula))
+    fullf <- merge.formula(formula, ancillary_formula)
+  else fullf <- formula
+  if (missing(data)) {
+    Terms <- terms(formula, specials=ss)
+    fullTerms <- terms(fullf, specials=ss)
+  }
+  else {
+    Terms <- terms(formula, specials=ss, data=data)
+    fullTerms <- terms(fullf, specials=ss, data=data)
+  }
   tcl <- attr(Terms, "specials")$cluster
   if (length(tcl) > 1)
     stop("a formula cannot have multiple cluster terms")
@@ -91,16 +101,21 @@ streg <- function(formula, data, weights, subset, na.action, dist = "weibull", p
   temp[[1L]] <- quote(stats::model.frame)
   special <- c("strata")
   temp$formula <- if (missing(data))
+    terms(fullf, special)
+  else terms(fullf, special, data = data)
+  mfull <- eval(temp, parent.frame())
+  fullTerms <- attr(mfull, "terms")
+  temp$formula <- if (missing(data))
     terms(formula, special)
   else terms(formula, special, data = data)
   m <- eval(temp, parent.frame())
   Terms <- attr(m, "terms")
-  weights <- model.extract(m, "weights")
-  Y <- model.extract(m, "response")
+  weights <- model.extract(mfull, "weights")
+  Y <- model.extract(mfull, "response")
   if (!inherits(Y, "Surv"))
     stop("Response must be a survival object")
   type <- attr(Y, "type")
-  cluster <- model.extract(m, "cluster")
+  cluster <- model.extract(mfull, "cluster")
   if (length(cluster)) {
     if (missing(robust))
       robust <- TRUE
@@ -111,21 +126,31 @@ streg <- function(formula, data, weights, subset, na.action, dist = "weibull", p
   strats <- attr(Terms, "specials")$strata
   keepz <- NULL
   if (length(strats)) {
-    temp <- untangle.specials(Terms, "strata", 1)
-    keepz <- temp$terms
-    if (length(temp$vars) == 1)
-      strata.keep <- m[[temp$vars]]
-    else strata.keep <- strata(m[, temp$vars], shortlabel = TRUE)
+    if (!is.null(ancillary_formula))
+      stop("cannot provide both an ancillary formula and strata() in the main formula")
+    tempstrat <- untangle.specials(Terms, "strata", 1)
+    keepz <- tempstrat$terms
+    if (length(tempstrat$vars) == 1)
+      strata.keep <- mfull[[tempstrat$vars]]
+    else strata.keep <- strata(mfull[, tempstrat$vars], shortlabel = TRUE)
     strata <- as.numeric(strata.keep)
     nstrata <- max(strata)
   }
   else {
     nstrata <- 1
     strata <- 0
+    if (!is.null(ancillary_formula)) {
+      temp$formula <- if (missing(data))
+        terms(ancillary_formula, specials = ss)
+      else terms(ancillary_formula, specials = ss, data = data)
+      ancm <- eval(temp, mfull)
+      ancTerms <- attr(ancm, "terms")
+    }
   }
 
-  X <- model.matrix(Terms, m)
-  xlevels <- .getXlevels(Terms, m)
+
+  X <- model.matrix(Terms, mfull)
+  xlevels <- .getXlevels(Terms, mfull)
   contr.save <- attr(X, "contrasts")
   if (!all(is.finite(X)))
     stop("data contains an infinite predictor")
@@ -135,6 +160,9 @@ streg <- function(formula, data, weights, subset, na.action, dist = "weibull", p
     zTerms <- Terms[keepz]
     attr(zTerms, "intercept") <- attr(Terms, "intercept")
   }
+  else if (!is.null(ancillary_formula)) {
+    zTerms <- ancTerms
+  }
   else {
     zTerms <- Terms[0]
     attr(zTerms, "intercept") <- attr(Terms, "intercept")
@@ -142,8 +170,13 @@ streg <- function(formula, data, weights, subset, na.action, dist = "weibull", p
   if (nstrata>1 && !is.null(pfixed))
     stop("cannot provide a fixed Weibull paramater pfixed in conjunction with strata()")
   if (is.null(pfixed)) {
-    Z <- model.matrix(zTerms, m)
-    zlevels <- .getXlevels(zTerms, m)
+    if (!is.null(ancillary_formula)) {
+      Z <- model.matrix(zTerms, mfull)
+      zlevels <- .getXlevels(zTerms, mfull)
+    } else {
+      Z <- model.matrix(zTerms, mfull)
+      zlevels <- .getXlevels(zTerms, mfull)
+    }
     contr.save.Z <- attr(Z, "contrasts")
     if (!all(is.finite(Z)))
       stop("data contains an infinite predictor")
@@ -156,7 +189,7 @@ streg <- function(formula, data, weights, subset, na.action, dist = "weibull", p
     contr.save.Z <- NULL
   }
 
-  offset <- model.offset(m)
+  offset <- model.offset(mfull)
   if (length(offset) == 0 || all(offset == 0))
     offset <- rep(0, n)
   if (is.character(dist)) {
@@ -173,23 +206,52 @@ streg <- function(formula, data, weights, subset, na.action, dist = "weibull", p
 
   ## fit models to obtain initial values
   if (init.search) {
+    init <- rep(NA, nvar+ ifelse(!is.null(nvarZ),nvarZ, 0))
+    init_nm <- colnames(X)
+    if (!is.null(nvarZ))
+        init_nm <- c(init_nm, paste0("(log_p)", colnames(Z)))
+    names(init) <- init_nm
     if (metric=="PH") {
       coxcall <- Call[!is.na(match(names(Call), c("", "formula","data", "weights", "cluster")))]
       coxcall <- coxcall[unlist(lapply(coxcall, function(x) !is.null(x)))]
       coxcall[[1]] <- quote(coxph)
-      cinit <- eval(coxcall)
+      cinit <- suppressWarnings(eval(coxcall))
       cinit <- coef(cinit)
-      init <- cinit
       if (is.null(pfixed)) {
-        stinit <- streg.fit(Z, Z, Y, weights, offset, init=NULL, pfixed,
+        if (is.null(weights))
+            pinit <- -coef(lm.fit(Z[exactsurv, ,drop=FALSE],
+                                  log(Y[exactsurv, ncol(Y)-1]),
+                                  offset=offset[exactsurv]))
+        else
+          pinit <- -coef(lm.wfit(Z[exactsurv, ,drop=FALSE],
+                                 log(Y[exactsurv, ncol(Y)-1]),
+                                 w=weights[exactsurv], offset=offset[exactsurv]))
+        if (length(pinit) != 2*ncol(Z)) {
+          pinit <- c(pinit, rep(0, length(pinit)))
+        }
+        stinit <- streg.fit(Z, Z, Y, weights, offset, init=pinit, pfixed,
                             max.method=max.method, control=control, dist=dist,
                             ...)
       }
-      else stinit <- streg.fit(model.matrix(zTerms, m),Z,Y,weights, offset, init=NULL, pfixed,
+      else {
+        pinit <- -mean(log(weights[exactsurv]*Y[exactsurv, ncol(Y)-1]/sum(weights[exactsurv])))
+        pinit <- c(pinit, rep(0, length(pinit)))
+        stinit <- streg.fit(model.matrix(zTerms, mfull),Z,Y,weights, offset, init=NULL, pfixed,
                             max.method=max.method, control=control, dist=dist,
                             ...)
-      stinit <- stinit$estimate
-      init <- c(init, stinit)[c(names(stinit[1]), names(cinit), names(stinit)[-1])]
+      }
+      stinit <- stinit$par
+      ## where there are initial values from streg.fit, take those -- i.e., only
+      ## use the cox fit for time-invariant, finite log-HR parameters
+      init[names(stinit)] <- stinit[names(stinit)]
+      init[names(cinit)] <- cinit[names(cinit)]
+      init[names(cinit)][is.na(init[names(cinit)])] <- cinit[is.na(init[names(cinit)])]
+      ## sometimes coxph returns NA
+      if (any(is.na(init))) {
+        init[names(cinit)][is.na(init[names(cinit)])] <- stinit[is.na(init[names(cinit)])]
+        init[is.na(init)] <- 0
+      }
+      init <- init[init_nm]
     }
   }
 
@@ -199,10 +261,10 @@ streg <- function(formula, data, weights, subset, na.action, dist = "weibull", p
   if (is.character(fit))
     fit <- list(fail = fit)
   else {
-    fit$maximum <- fit$maximum + logcorrect
+    fit$maximum <- fit$value + logcorrect
     nvar <- ncol(X)
-    fit$coefficients <- fit$estimate[1:nvar]
-    fit$df <- length(fit$estimate)
+    fit$coefficients <- fit$par[1:nvar]
+    fit$df <- length(fit$par)
     fit$df.residual <- n - fit$df
     fit$terms <- Terms
     fit$contrasts <- contr.save
@@ -222,7 +284,7 @@ streg <- function(formula, data, weights, subset, na.action, dist = "weibull", p
     fit$dist <- dist
     fit$metric <- "PH"
     if (model)
-      fit$model <- m
+      fit$model <- mfull
     if (x)
       fit$x <- X
     if (z && !is.null(Z))
@@ -235,7 +297,7 @@ streg <- function(formula, data, weights, subset, na.action, dist = "weibull", p
     if (robust) {
       fit$naive.var <- fit$var
       if (!model)
-        fit$model <- m
+        fit$model <- mfull
       if (length(cluster))
         fit$var <- fit$naive.var%*%((max(cluster)/(max(cluster)-1))*crossprod(rowsum(fit$gradientObs, cluster)))%*%fit$naive.var
       else fit$var <- fit$naive.var%*%((n/(n-1))*crossprod(rowsum(fit$gradientObs)))%*%fit$naive.var
@@ -245,7 +307,7 @@ streg <- function(formula, data, weights, subset, na.action, dist = "weibull", p
     singular <- (diag(fit$var) == 0)[1:length(fit$coefficients)]
     if (any(singular))
       fit$coefficients[singular] <- NA
-    na.action <- attr(m, "na.action")
+    na.action <- attr(mfull, "na.action")
     if (length(na.action))
       fit$na.action <- na.action
     class(fit) <- c("streg", "survreg", class(fit))
